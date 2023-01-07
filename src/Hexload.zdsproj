@@ -6,8 +6,10 @@
 <file filter-key="">.\init.asm</file>
 <file filter-key="">.\main.c</file>
 <file filter-key="">.\mos-interface.asm</file>
-<file filter-key="">.\mos_bytestream.asm</file>
 <file filter-key="">.\Hexload.linkcmd</file>
+<file filter-key="">.\uart.c</file>
+<file filter-key="">.\serial.asm</file>
+<file filter-key="">.\hxload.asm</file>
 </files>
 
 <!-- configuration information -->

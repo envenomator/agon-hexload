@@ -1,0 +1,104 @@
+Zilog eZ80 Macro Assembler Version 4.3 (19073001) RELISTED07-Jan-23     14:22:35     page:   1
+
+
+PC     Object              I  Line    Source 
+       000000D0            A     1    PORT			EQU	%D0			; UART1
+                           A     2    				
+       000000D0            A     3    REG_RBR:		EQU	PORT+0		; Receive buffe
+       000000D0            A     4    REG_THR:		EQU	PORT+0		; Transmitter h
+       000000D0            A     5    REG_DLL:		EQU	PORT+0		; Divisor latch
+       000000D1            A     6    REG_IER:		EQU	PORT+1		; Interrupt ena
+       000000D1            A     7    REG_DLH:		EQU	PORT+1		; Divisor latch
+       000000D2            A     8    REG_IIR:		EQU	PORT+2		; Interrupt ide
+       000000D2            A     9    REG_FCT			EQU	PORT+2;		; Flow control
+       000000D3            A    10    REG_LCR:		EQU	PORT+3		; Line control
+       000000D4            A    11    REG_MCR:		EQU	PORT+4		; Modem control
+       000000D5            A    12    REG_LSR:		EQU	PORT+5		; Line status
+       000000D6            A    13    REG_MSR:		EQU	PORT+6		; Modem status
+                           A    14    
+       000000D7            A    15    REG_SCR:		EQU PORT+7		; Scratch
+                           A    16    
+       00004000            A    17    TX_WAIT			EQU	16384 		; Count before 
+                           A    18    
+       00000080            A    19    UART_LSR_ERR	EQU %80			; Error
+       00000040            A    20    UART_LSR_ETX	EQU %40			; Transmit empt
+       00000020            A    21    UART_LSR_ETH	EQU	%20			; Transmit hold
+       00000001            A    22    UART_LSR_RDY	EQU	%01			; Data ready
+                           A    23    
+                           A    24    
+                           A    25    			.ASSUME	ADL = 1
+                           A    26    			SEGMENT CODE
+                           A    27    			
+                           A    28    			XDEF	_uart1_handler
+                           A    29    			XDEF	_uart1_getch
+                           A    30    			XDEF	_uart1_putch
+                           A    31    			
+04026D                     A    32    _uart1_handler:		
+04026D F3                  A    33    			DI
+04026E F5                  A    34    			PUSH	AF
+04026F ED38D5              A    35    			IN0		A,(REG_LSR)			; Get t
+040272 E601                A    36    			AND		UART_LSR_RDY		; Check
+040274 28 12               A    37    			JR		Z, $F				; Nothi
+040276 3E01                A    38    			LD		A,1
+040278 32 AE 0C 04         A    39    			LD		(uart1_received),A
+04027C ED38D0              A    40    			IN0		A,(REG_RBR)			; Read 
+04027F 32 AD 0C 04         A    41    			LD		(uart1_buffer),A
+040283 F1                  A    42    			POP		AF
+040284 FB                  A    43    			EI
+040285 5BED4D              A    44    			RETI.L
+040288                     A    45    $$:			; No character received
+040288 AF                  A    46    			XOR 	A,A
+040289 32 AE 0C 04         A    47    			LD		(uart1_received),A			
+04028D F1                  A    48    			POP		AF
+04028E FB                  A    49    			EI
+04028F 5BED4D              A    50    			RETI.L	
+                           A    51    				
+                           A    52    ; Write a byte to UART1
+                           A    53    ; A: Data byte to write
+                           A    54    ; Returns:
+                           A    55    ; A = 0 if timed out
+                           A    56    ; A = 1 if written
+040292                     A    57    _uart1_putch:
+040292 C5                  A    58    			PUSH	BC			; Stack BC
+040293 F5                  A    59    			PUSH	AF 			; Stack AF
+040294 01004000            A    60    			LD		BC,TX_WAIT	; Set CB to the
+040298 ED38D5              A    61    $$:			IN0		A,(REG_LSR)	; Get the line 
+04029B E640                A    62    			AND 	UART_LSR_ETX; Check for TX 
+04029D 20 09               A    63    			JR		NZ, $F		; If set, then 
+04029F 0B                  A    64    			DEC		BC
+0402A0 78                  A    65    			LD		A, B
+0402A1 B1                  A    66    			OR		C
+0402A2 20 F4               A    67    			JR		NZ, $B
+0402A4 F1                  A    68    			POP		AF			; We've timed o
+0402A5 C1                  A    69    			POP		BC			; Restore the s
+0402A6 AF                  A    70    			XOR		A,A			; Return timeou
+0402A7 C9                  A    71    			RET	
+0402A8 F1                  A    72    $$:			POP		AF			; Good to send 
+0402A9 ED39D0              A    73    			OUT0	(REG_THR),A	; Write the cha
+0402AC C1                  A    74    			POP		BC			; Restore BC
+0402AD 3E01                A    75    			LD		A,1			; Return succes
+0402AF C9                  A    76    			RET 
+                           A    77    
+                           A    78    ; Blocking read a byte from UART1
+                           A    79    ; Returns:
+                           A    80    ; A = byte read
+0402B0                     A    81    _uart1_getch:
+0402B0 3A AE 0C 04         A    82    			LD		A,(uart1_received)
+0402B4 B7                  A    83    			OR		A
+0402B5 28 F9               A    84    			JR		Z, _uart1_getch
+0402B7 F3                  A    85    			DI		; atomic acknowledge byte r
+0402B8 AF                  A    86    			XOR		A,A
+0402B9 32 AE 0C 04         A    87    			LD		(uart1_received),A
+0402BD 3A AD 0C 04         A    88    			LD		A,(uart1_buffer)
+0402C1 FB                  A    89    			EI
+0402C2 C9                  A    90    			RET
+                           A    91    	
+                           A    92    			SEGMENT DATA
+                           A    93    			
+040CAD 01                  A    94    uart1_buffer		DEFB	1	; 64 byte recei
+040CAE 01                  A    95    uart1_received		DEFB	1	; boolean
+
+
+Errors: 0
+Warnings: 0
+Lines Assembled: 96

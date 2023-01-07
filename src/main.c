@@ -2,121 +2,52 @@
  * Title:			AGON Hexload code
  * Author:			Jeroen Venema
  * Created:			22/10/2022
- * Last Updated:	26/11/2022
+ * Last Updated:	07/01/2023
  * 
  * Modinfo:
  * 22/10/2022:		Initial version MOS patch
  * 23/10/2022:		Receive_bytestream in assembly
  * 26/11/2022:		MOS commandline version
+ * 07/01/2023:		Removed VDP patch bytestream option, shift to UART1 code
  */
 
-#define MOS_defaultLoadAddress 0x40000		// if no address is given from the transmitted Hex file
+#define MOS_defaultLoadAddress 0x040000		// if no address is given from the transmitted Hex file
+#define MOS102_SETVECTOR	   0x000956		// as assembled in MOS 1.02, until set_vector becomes a API call in a later MOS version
 
 #include <stdio.h>
+#include <ctype.h>
 #include "mos-interface.h"
+#include "uart.h"
+#include <string.h>
 
-UINT32 crc32(const char *s, UINT32 length);
-extern UINT24 receive_bytestream(UINT8 *addr);
-extern char getTransparentByte(void);
+typedef void * rom_set_vector(unsigned int vector, void(*handler)(void));
 
-// Receive a bytestream from the VDU, in chunks at a time
-// Accepts an extended address from the Intel HEX file. 
-// If the received address is 0, the default load address is used
+CHAR hxload(void);
+
 int main(int argc, char * argv[]) {
-	UINT32 crc;
-	UINT24 addressvalue;
-	UINT8 *addr,*start;
-	UINT8 n,value, count;
-	UINT8 done = 0;
-	UINT8 file = 0;
+	CHAR c;
+	void *oldvector;
 	
-	if(argc > 2)
-	{
-		printf("Usage: HEXLOAD [filename]\r\n");
-		return 0;
-	}
-	
-	if(argc == 2)
-	{
-		file = mos_fopen(argv[1], fa_write|fa_create_always);
-		if(!file)
-		{
-			printf("Error opening \"%s\"\r\n",argv[1]);
-			return 0;
-		}
-	}
-	
-	// set vdu 23/28 to start HEXLOAD code at VDU
-	putch(23);
-	putch(28);
-	// We can't transmit any text during bytestream reception, so the VDU handles this
-	
-	addressvalue = getTransparentByte(); 			// LSB
-	addressvalue |= (getTransparentByte() << 8);
-	addressvalue |= (getTransparentByte() << 16);	// MSB
+	rom_set_vector *set_vector = (rom_set_vector *)MOS102_SETVECTOR;	
+	UART 	pUART;
 
-	if(!file && addressvalue) addr = (UINT8 *)addressvalue;
-	else addr = (UINT8 *)MOS_defaultLoadAddress;
+	pUART.baudRate = 384000;
+	pUART.dataBits = 8;
+	pUART.stopBits = 1;
+	pUART.parity = PAR_NOPARITY;
 
-	start = addr;
-	addr += receive_bytestream(addr);
-	
-	crc = crc32((const char *)start, (addr - start));
-	// VDP will match this to it's own CRC32 and show the result
-	putch(crc & 0xFF); // LSB
-	putch((crc & 0xFF00) >> 8);
-	putch((crc & 0xFF0000) >> 16);
-	putch((crc & 0xFF000000) >> 24); // MSB
-	
+	oldvector = set_vector(UART1_IVECT, uart1_handler);
+	init_UART1();
+	open_UART1(&pUART);								// Open the UART 
 
-	printf("ez80: %ld bytes\r\n",addr-start);
+	printf("Receiving Intel hex file\r\n");
+	c = hxload();
+	if(c == 0) printf("OK\r\n");
+	else printf("%d error(s)\r\n",c);
+
+	// disable UART1 interrupt, set previous vector
+	set_vector(UART1_IVECT, oldvector);
 	
-	if(file) 
-	{
-		printf("Writing data to \"%s\"\r\n",argv[1]);
-		while(start != addr)
-		{
-			mos_fputc(file,*start);
-			start++;
-		}
-		mos_fclose(file);
-	}
 	return 0;
 }
 
-// Calculate a CRC32 over a block of memory
-// Parameters:
-// - s: Pointer to a memory location
-// - length: Size of memoryblock in bytes
-UINT32 crc32(const char *s, UINT32 length)
-{
-  static UINT32 crc;
-  static UINT32 crc32_table[256];
-  UINT32 i,ch,j,b,t; 
-
-  // init a crc32 lookup table, fastest way to process the entire block
-  for(i = 0; i < 256; i++)
-  {
-    ch = i;
-    crc = 0;
-    for(j = 0; j < 8; j++)
-    {
-	  b=(ch^crc)&1;
-	  crc>>=1;
-	  if(b) crc=crc^0xEDB88320;
-	  ch>>=1;
-    }
-    crc32_table[i] = crc;
-  }        
-
-  // calculate the crc using the table
-  crc = 0xFFFFFFFF;
-  for(i=0;i<length;i++)
-  {
-    char ch=s[i];
-    t=(ch^crc)&0xFF;
-    crc=(crc>>8)^crc32_table[t];
-  }
-
-  return ~crc;
-}

@@ -1,4 +1,4 @@
-Zilog eZ80 Macro Assembler Version 4.3 (19073001) RELISTED06-Jan-23     16:18:23     page:   1
+Zilog eZ80 Macro Assembler Version 4.3 (19073001) RELISTED07-Jan-23     14:17:16     page:   1
 
 
 PC     Object              I  Line    Source 
@@ -149,44 +149,44 @@ PC     Object              I  Line    Source
                            A    20    ; receive a single keycode/keymods packet from 
                            A    21    ; keycode can't be 0x00 - so this is escaped wi
                            A    22    ; return transparent byte in a
-0B05D3                     A    23    _getTransparentByte:
-0B05D3 FDE5                A    24    	push iy
-0B05D5 DDE5                A    25    	push ix
+04023D                     A    23    _getTransparentByte:
+04023D FDE5                A    24    	push iy
+04023F DDE5                A    25    	push ix
                            A    26    
-0B05D7 CD E4 05 0B         A    27    	call getSysvars
-0B05DB CD E9 05 0B         A    28    	call getTransparentByte
+040241 CD 4E 02 04         A    27    	call getSysvars
+040245 CD 53 02 04         A    28    	call getTransparentByte
                            A    29    	
-0B05DF DDE1                A    30    	pop ix
-0B05E1 FDE1                A    31    	pop iy
-0B05E3 C9                  A    32    	ret
+040249 DDE1                A    30    	pop ix
+04024B FDE1                A    31    	pop iy
+04024D C9                  A    32    	ret
                            A    33    
                            A    34    ; get pointer to sysvars in ixu
-0B05E4                     A    35    getSysvars:
-0B05E4 3E08                A    36    	ld a, mos_sysvars		; MOS call for mos_
-0B05E6 5BCF                A    37    	rst.lil 08h				; returns pointer t
-0B05E8 C9                  A    38    	ret
+04024E                     A    35    getSysvars:
+04024E 3E08                A    36    	ld a, mos_sysvars		; MOS call for mos_
+040250 5BCF                A    37    	rst.lil 08h				; returns pointer t
+040252 C9                  A    38    	ret
                            A    39    
                            A    40    ; call here when ixu has been set previously fo
-0B05E9                     A    41    getTransparentByte:
-0B05E9 DD7E05              A    42    	ld a, (ix+sysvar_keycode)
-0B05EC B7                  A    43    	or a
-0B05ED 28 FA               A    44    	jr z, getTransparentByte
-0B05EF 4F                  A    45    	ld c,a
-0B05F0 AF                  A    46    	xor a				; acknowledge receipt o
-0B05F1 DD7705              A    47    	ld (ix+sysvar_keycode),a
-0B05F4 79                  A    48    	ld a,c
+040253                     A    41    getTransparentByte:
+040253 DD7E05              A    42    	ld a, (ix+sysvar_keycode)
+040256 B7                  A    43    	or a
+040257 28 FA               A    44    	jr z, getTransparentByte
+040259 4F                  A    45    	ld c,a
+04025A AF                  A    46    	xor a				; acknowledge receipt o
+04025B DD7705              A    47    	ld (ix+sysvar_keycode),a
+04025E 79                  A    48    	ld a,c
                            A    49    
-0B05F5 FE01                A    50    	cp a,01h			; check for escape code
-0B05F7 20 0A               A    51    	jr nz, getbyte_done ; no escape code receiv
-0B05F9 4F                  A    52    	ld c,a				; save received byte
-0B05FA DD7E06              A    53    	ld a,(ix+sysvar_keymods)		; is byte e
-0B05FD B7                  A    54    	or a
-0B05FE 28 02               A    55    	jr z, getbyte_nesc  ; not escaped: normal t
-0B0600 0E00                A    56    	ld c,0				; escaped 0x01 => 0x00 
-0B0602                     A    57    getbyte_nesc:
-0B0602 79                  A    58    	ld a,c				; restore to a
-0B0603                     A    59    getbyte_done:
-0B0603 C9                  A    60    	ret
+04025F FE01                A    50    	cp a,01h			; check for escape code
+040261 20 0A               A    51    	jr nz, getbyte_done ; no escape code receiv
+040263 4F                  A    52    	ld c,a				; save received byte
+040264 DD7E06              A    53    	ld a,(ix+sysvar_keymods)		; is byte e
+040267 B7                  A    54    	or a
+040268 28 02               A    55    	jr z, getbyte_nesc  ; not escaped: normal t
+04026A 0E00                A    56    	ld c,0				; escaped 0x01 => 0x00 
+04026C                     A    57    getbyte_nesc:
+04026C 79                  A    58    	ld a,c				; restore to a
+04026D                     A    59    getbyte_done:
+04026D C9                  A    60    	ret
                            A    61    
                            A    62    ; argument: 24-bit address pointer
                            A    63    ; accepts n>=0 number of blocks from the VDU
@@ -194,43 +194,43 @@ PC     Object              I  Line    Source
                            A    65    ; 0-255 (byte) number of bytes in this block - 
                            A    66    ; number of packets from VDU, containing both k
                            A    67    
-0B0604                     A    68    _receive_bytestream:
-0B0604 FDE5                A    69    	push iy
-0B0606 FD210000 00         A    70    	ld iy,0
-0B060B FD39                A    71    	add iy, sp
+04026E                     A    68    _receive_bytestream:
+04026E FDE5                A    69    	push iy
+040270 FD210000 00         A    70    	ld iy,0
+040275 FD39                A    71    	add iy, sp
                            A    72    	
-0B060D FD1706              A    73    	ld de, (iy+6)			; de == 24-bit addr
-0B0610 21000000            A    74    	ld hl, 0				; de will contain t
+040277 FD1706              A    73    	ld de, (iy+6)			; de == 24-bit addr
+04027A 21000000            A    74    	ld hl, 0				; de will contain t
                            A    75    	
-0B0614 DDE5                A    76    	push ix					; safeguard main ix
+04027E DDE5                A    76    	push ix					; safeguard main ix
                            A    77    	
-0B0616 CD E4 05 0B         A    78    	call getSysvars			; returns pointer t
-0B061A                     A    79    blockloop:
-0B061A CD E9 05 0B         A    80    	call getTransparentByte	; ask for number of
-0B061E B7                  A    81    	or a
-0B061F 28 0E               A    82    	jr z, rbdone
+040280 CD 4E 02 04         A    78    	call getSysvars			; returns pointer t
+040284                     A    79    blockloop:
+040284 CD 53 02 04         A    80    	call getTransparentByte	; ask for number of
+040288 B7                  A    81    	or a
+040289 28 0E               A    82    	jr z, rbdone
                            A    83    
-0B0621 47                  A    84    	ld b,a					; loop counter
-0B0622                     A    85    $$:
-0B0622 CD E9 05 0B         A    86    	call getTransparentByte	; receive each byte
-0B0626 12                  A    87    	ld (de),a				; store byte in mem
-0B0627 13                  A    88    	inc de					; next address
-0B0628 23                  A    89    	inc hl					; increase total nu
-0B0629 10 F7               A    90    	djnz $B					; next byte
-0B062B C3 1A 06 0B         A    91    	jp blockloop
+04028B 47                  A    84    	ld b,a					; loop counter
+04028C                     A    85    $$:
+04028C CD 53 02 04         A    86    	call getTransparentByte	; receive each byte
+040290 12                  A    87    	ld (de),a				; store byte in mem
+040291 13                  A    88    	inc de					; next address
+040292 23                  A    89    	inc hl					; increase total nu
+040293 10 F7               A    90    	djnz $B					; next byte
+040295 C3 84 02 04         A    91    	jp blockloop
                            A    92    	
-0B062F                     A    93    rbdone:
-0B062F DDE1                A    94    	pop ix
-0B0631 FDF9                A    95    	ld sp,iy
-0B0633 FDE1                A    96    	pop iy
-0B0635 C9                  A    97    	ret				; returns hl with number of
+040299                     A    93    rbdone:
+040299 DDE1                A    94    	pop ix
+04029B FDF9                A    95    	ld sp,iy
+04029D FDE1                A    96    	pop iy
+04029F C9                  A    97    	ret				; returns hl with number of
                            A    98    	
                            A    99    	
                            A   100    	SEGMENT DATA
                            A   101    
                            A   102    ; Storage for pointer to sysvars
                            A   103    
-0B0F26                     A   104    sysvarptr:		DS 3
+040CE0                     A   104    sysvarptr:		DS 3
                            A   105    			
                            A   106    	END
 

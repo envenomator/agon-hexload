@@ -26,16 +26,16 @@ ZTPDIR = C:\ZiLOG\ZDSII_eZ80Acclaim!_5.3.4\ZTP2.5.1
 ZTPDIR_ESCSPACE = C:\ZiLOG\ZDSII_eZ80Acclaim!_5.3.4\ZTP2.5.1
 
 # project directory
-PRJDIR = C:\source\Agon\Programs\hexload\src
-PRJDIR_ESCSPACE = C:\source\Agon\Programs\hexload\src
+PRJDIR = C:\source\agon-hexload\src
+PRJDIR_ESCSPACE = C:\source\agon-hexload\src
 
 # intermediate files directory
-WORKDIR = C:\source\Agon\Programs\hexload\src\Debug
-WORKDIR_ESCSPACE = C:\source\Agon\Programs\hexload\src\Debug
+WORKDIR = C:\source\agon-hexload\src\Debug
+WORKDIR_ESCSPACE = C:\source\agon-hexload\src\Debug
 
 # output files directory
-OUTDIR = C:\source\Agon\Programs\hexload\src\Debug\
-OUTDIR_ESCSPACE = C:\source\Agon\Programs\hexload\src\Debug\
+OUTDIR = C:\source\agon-hexload\src\Debug\
+OUTDIR_ESCSPACE = C:\source\agon-hexload\src\Debug\
 
 # tools
 CC = @"$(BIN)\eZ80cc"
@@ -104,22 +104,40 @@ clean:
             $(RM) "$(WORKDIR)\mos-interface.lis"
 	@if exist "$(WORKDIR)\mos-interface.lst"  \
             $(RM) "$(WORKDIR)\mos-interface.lst"
-	@if exist "$(WORKDIR)\mos_bytestream.obj"  \
-            $(RM) "$(WORKDIR)\mos_bytestream.obj"
-	@if exist "$(WORKDIR)\mos_bytestream.lis"  \
-            $(RM) "$(WORKDIR)\mos_bytestream.lis"
-	@if exist "$(WORKDIR)\mos_bytestream.lst"  \
-            $(RM) "$(WORKDIR)\mos_bytestream.lst"
+	@if exist "$(WORKDIR)\uart.obj"  \
+            $(RM) "$(WORKDIR)\uart.obj"
+	@if exist "$(WORKDIR)\uart.lis"  \
+            $(RM) "$(WORKDIR)\uart.lis"
+	@if exist "$(WORKDIR)\uart.lst"  \
+            $(RM) "$(WORKDIR)\uart.lst"
+	@if exist "$(WORKDIR)\uart.src"  \
+            $(RM) "$(WORKDIR)\uart.src"
+	@if exist "$(WORKDIR)\serial.obj"  \
+            $(RM) "$(WORKDIR)\serial.obj"
+	@if exist "$(WORKDIR)\serial.lis"  \
+            $(RM) "$(WORKDIR)\serial.lis"
+	@if exist "$(WORKDIR)\serial.lst"  \
+            $(RM) "$(WORKDIR)\serial.lst"
+	@if exist "$(WORKDIR)\hxload.obj"  \
+            $(RM) "$(WORKDIR)\hxload.obj"
+	@if exist "$(WORKDIR)\hxload.lis"  \
+            $(RM) "$(WORKDIR)\hxload.lis"
+	@if exist "$(WORKDIR)\hxload.lst"  \
+            $(RM) "$(WORKDIR)\hxload.lst"
 
 relist: 
-	$(AS) $(ASFLAGS) -relist:"C:\source\Agon\Programs\hexload\src\Debug\hexload.map" \
-            C:\source\Agon\Programs\hexload\src\init.asm
-	$(AS) $(ASFLAGS) -relist:"C:\source\Agon\Programs\hexload\src\Debug\hexload.map" \
-            C:\source\Agon\Programs\hexload\src\Debug\main.src
-	$(AS) $(ASFLAGS) -relist:"C:\source\Agon\Programs\hexload\src\Debug\hexload.map" \
-            C:\source\Agon\Programs\hexload\src\mos-interface.asm
-	$(AS) $(ASFLAGS) -relist:"C:\source\Agon\Programs\hexload\src\Debug\hexload.map" \
-            C:\source\Agon\Programs\hexload\src\mos_bytestream.asm
+	$(AS) $(ASFLAGS) -relist:"C:\source\agon-hexload\src\Debug\hexload.map" \
+            C:\source\agon-hexload\src\init.asm
+	$(AS) $(ASFLAGS) -relist:"C:\source\agon-hexload\src\Debug\hexload.map" \
+            C:\source\agon-hexload\src\Debug\main.src
+	$(AS) $(ASFLAGS) -relist:"C:\source\agon-hexload\src\Debug\hexload.map" \
+            C:\source\agon-hexload\src\mos-interface.asm
+	$(AS) $(ASFLAGS) -relist:"C:\source\agon-hexload\src\Debug\hexload.map" \
+            C:\source\agon-hexload\src\Debug\uart.src
+	$(AS) $(ASFLAGS) -relist:"C:\source\agon-hexload\src\Debug\hexload.map" \
+            C:\source\agon-hexload\src\serial.asm
+	$(AS) $(ASFLAGS) -relist:"C:\source\agon-hexload\src\Debug\hexload.map" \
+            C:\source\agon-hexload\src\hxload.asm
 
 # pre-4.11.0 compatibility
 rebuildall: buildall 
@@ -130,7 +148,9 @@ OBJS =  \
             $(WORKDIR_ESCSPACE)\init.obj  \
             $(WORKDIR_ESCSPACE)\main.obj  \
             $(WORKDIR_ESCSPACE)\mos-interface.obj  \
-            $(WORKDIR_ESCSPACE)\mos_bytestream.obj
+            $(WORKDIR_ESCSPACE)\uart.obj  \
+            $(WORKDIR_ESCSPACE)\serial.obj  \
+            $(WORKDIR_ESCSPACE)\hxload.obj
 
 Hexload: $(OBJS)
 	 $(LD) $(LDFLAGS)
@@ -153,8 +173,31 @@ $(WORKDIR_ESCSPACE)\mos-interface.obj :  \
             $(PRJDIR_ESCSPACE)\mos_api.inc
 	 $(AS) $(ASFLAGS) "$(PRJDIR)\mos-interface.asm"
 
-$(WORKDIR_ESCSPACE)\mos_bytestream.obj :  \
-            $(PRJDIR_ESCSPACE)\mos_bytestream.asm  \
-            $(PRJDIR_ESCSPACE)\mos_api.inc
-	 $(AS) $(ASFLAGS) "$(PRJDIR)\mos_bytestream.asm"
+$(WORKDIR_ESCSPACE)\uart.obj :  \
+            $(PRJDIR_ESCSPACE)\uart.c  \
+            $(INCLUDE_ESCSPACE)\std\Format.h  \
+            $(INCLUDE_ESCSPACE)\std\Stdarg.h  \
+            $(INCLUDE_ESCSPACE)\std\Stddef.h  \
+            $(INCLUDE_ESCSPACE)\std\Stdio.h  \
+            $(INCLUDE_ESCSPACE)\zilog\cio.h  \
+            $(INCLUDE_ESCSPACE)\zilog\defines.h  \
+            $(INCLUDE_ESCSPACE)\zilog\eZ80190.h  \
+            $(INCLUDE_ESCSPACE)\zilog\eZ80F91.h  \
+            $(INCLUDE_ESCSPACE)\zilog\eZ80F92.h  \
+            $(INCLUDE_ESCSPACE)\zilog\eZ80F93.h  \
+            $(INCLUDE_ESCSPACE)\zilog\eZ80L92.h  \
+            $(INCLUDE_ESCSPACE)\zilog\ez80.h  \
+            $(INCLUDE_ESCSPACE)\zilog\gpio.h  \
+            $(INCLUDE_ESCSPACE)\zilog\uart.h  \
+            $(INCLUDE_ESCSPACE)\zilog\uartdefs.h  \
+            $(PRJDIR_ESCSPACE)\uart.h
+	 $(CC) $(CFLAGS) "$(PRJDIR)\uart.c"
+
+$(WORKDIR_ESCSPACE)\serial.obj :  \
+            $(PRJDIR_ESCSPACE)\serial.asm
+	 $(AS) $(ASFLAGS) "$(PRJDIR)\serial.asm"
+
+$(WORKDIR_ESCSPACE)\hxload.obj :  \
+            $(PRJDIR_ESCSPACE)\hxload.asm
+	 $(AS) $(ASFLAGS) "$(PRJDIR)\hxload.asm"
 

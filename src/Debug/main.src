@@ -1,0 +1,1061 @@
+; Zilog eZ80 ANSI C Compiler Release 3.4
+; -nomodsect -optsize -noreduceopt -nopadbranch -debug
+; -peephole -globalopt -localcse -const=ROM 
+	FILE	"..\main.c"
+	.assume ADL=1
+.DEBUG "C"
+	SEGMENT CODE
+.BEGREC "fmt_type",19
+.DEFINE "status"
+.VALUE 0
+.CLASS 8
+.TYPE 12
+.ENDEF
+.DEFINE "flags"
+.VALUE 1
+.CLASS 8
+.TYPE 12
+.ENDEF
+.DEFINE "size"
+.VALUE 2
+.CLASS 8
+.TYPE 2
+.ENDEF
+.DEFINE "chr"
+.VALUE 3
+.CLASS 8
+.TYPE 2
+.ENDEF
+.DEFINE "type"
+.VALUE 4
+.CLASS 8
+.TYPE 2
+.ENDEF
+.DEFINE "field_width"
+.VALUE 5
+.CLASS 8
+.TYPE 2
+.ENDEF
+.DEFINE "precision"
+.VALUE 6
+.CLASS 8
+.TYPE 2
+.ENDEF
+.DEFINE "set_begin"
+.VALUE 7
+.CLASS 8
+.TYPE 34
+.ENDEF
+.DEFINE "set_end"
+.VALUE 10
+.CLASS 8
+.TYPE 34
+.ENDEF
+.DEFINE "pad_whole"
+.VALUE 13
+.CLASS 8
+.TYPE 12
+.ENDEF
+.DEFINE "pad_pre_fract"
+.VALUE 14
+.CLASS 8
+.TYPE 12
+.ENDEF
+.DEFINE "pad_post_fract"
+.VALUE 15
+.CLASS 8
+.TYPE 12
+.ENDEF
+.DEFINE "pad_at"
+.VALUE 16
+.CLASS 8
+.TYPE 34
+.ENDEF
+.ENDREC "fmt_type"
+.BEGREC "flt_info",12
+.DEFINE "flags"
+.VALUE 0
+.CLASS 8
+.TYPE 12
+.ENDEF
+.DEFINE "exp"
+.VALUE 1
+.CLASS 8
+.TYPE 2
+.ENDEF
+.DEFINE "digits"
+.VALUE 2
+.CLASS 8
+.DIM 10
+.TYPE 108
+.ENDEF
+.ENDREC "flt_info"
+;    1	/*
+;    2	 * Title:			AGON Hexload code
+;    3	 * Author:			Jeroen Venema
+;    4	 * Created:			22/10/2022
+;    5	 * Last Updated:	26/11/2022
+;    6	 * 
+;    7	 * Modinfo:
+;    8	 * 22/10/2022:		Initial version MOS patch
+;    9	 * 23/10/2022:		Receive_bytestream in assembly
+;   10	 * 26/11/2022:		MOS commandline version
+;   11	 */
+;   12	
+;   13	#define MOS_defaultLoadAddress 0x40000		// if no address is given from the transmitted Hex file
+;   14	
+;   15	#include <stdio.h>
+;   16	#include "mos-interface.h"
+;   17	
+;   18	UINT32 crc32(const char *s, UINT32 length);
+;   19	extern UINT24 receive_bytestream(UINT8 *addr);
+;   20	extern char getTransparentByte(void);
+;   21	
+;   22	
+;   23	typedef void * rom_set_vector(unsigned int vector, void(*handler)(void));
+;   24	
+;   25	// Receive a bytestream from the VDU, in chunks at a time
+;   26	// Accepts an extended address from the Intel HEX file. 
+;   27	// If the received address is 0, the default load address is used
+;   28	int main(int argc, char * argv[]) {
+_main:
+.DEFINE "_main"
+
+.VALUE _main
+
+.CLASS 2
+
+.TYPE 68
+
+.ENDEF
+
+.BEGFUNC "main",28,"_main"
+
+.LINE 28
+
+.DEFINE "argc"
+
+.CLASS 65
+
+.VALUE 6
+
+.TYPE 4
+
+.ENDEF
+
+.DEFINE "argv"
+
+.CLASS 65
+
+.VALUE 9
+
+.TYPE 290
+
+.ENDEF
+
+.DEFINE "addr"
+
+.CLASS 65
+
+.VALUE -3
+
+.TYPE 44
+
+.ENDEF
+
+.DEFINE "start"
+
+.CLASS 65
+
+.VALUE -6
+
+.TYPE 44
+
+.ENDEF
+
+.DEFINE "file"
+
+.CLASS 65
+
+.VALUE -7
+
+.TYPE 12
+
+.ENDEF
+
+.DEFINE "addressvalue"
+
+.CLASS 65
+
+.VALUE -10
+
+.TYPE 14
+
+.ENDEF
+
+.DEFINE "crc"
+
+.CLASS 65
+
+.VALUE -14
+
+.TYPE 15
+
+.ENDEF
+
+	PUSH	IX
+	LD	IX,0
+	ADD	IX,SP
+	LEA	HL,IX+%FFFFFFF1
+	LD	SP,HL
+;   29		UINT32 crc;
+;   30		UINT24 addressvalue;
+;   31		UINT8 *addr,*start;
+;   32		UINT8 n,value, count;
+;   33		UINT8 done = 0;
+;   34		UINT8 file = 0;
+.LINE 34
+
+	LD	(IX+%FFFFFFF9),%0
+;   35		
+;   36		rom_set_vector *set_vector = (rom_set_vector *)0x000956;	// as assembled in MOS 1.02, until set_vector becomes a API call in a later MOS version
+;   37		
+;   38		if(argc > 2)
+.LINE 38
+
+	LD	BC,(IX+%6)
+	LD	HL,2
+	OR	A,A
+	SBC	HL,BC
+	CALL	__setflag
+	JP	P,L_3
+;   39		{
+;   40			printf("Usage: HEXLOAD [filename]\r\n");
+.LINE 40
+
+	LD	BC,___print_uputch
+	LD	(___print_xputch),BC
+	LD	BC,L__1
+	PUSH	BC
+	CALL	___print_sendstring
+	POP	BC
+;   41			return 0;
+.LINE 41
+
+	OR	A,A
+	SBC	HL,HL
+	JR	L_15
+;   42		}
+L_3:
+.LINE 42
+
+;   43		
+;   44		if(argc == 2)
+.LINE 44
+
+	LD	BC,2
+	LD	HL,(IX+%6)
+	OR	A,A
+	SBC	HL,BC
+	JR	NZ,L_4
+;   45		{
+;   46			file = mos_fopen(argv[1], fa_write|fa_create_always);
+.LINE 46
+
+	LD	BC,10
+	PUSH	BC
+	LD	IY,(IX+%9)
+	LEA	HL,IY+%3
+	LD	BC,(HL)
+	PUSH	BC
+	CALL	_mos_fopen
+	POP	BC
+	POP	BC
+	LD	(IX+%FFFFFFF9),A
+;   47			if(!file)
+.LINE 47
+
+	OR	A,A
+	JR	NZ,L_4
+;   48			{
+;   49				printf("Error opening \"%s\"\r\n",argv[1]);
+.LINE 49
+
+	LD	BC,___print_uputch
+	LD	(___print_xputch),BC
+	LD	BC,L__4
+	PUSH	BC
+	CALL	___print_sendstring
+	POP	BC
+	LD	IY,(IX+%9)
+	LEA	HL,IY+%3
+	LD	BC,(HL)
+	PUSH	BC
+	CALL	___print_sendstring
+	POP	BC
+	LD	BC,L__5
+	PUSH	BC
+	CALL	___print_sendstring
+	POP	BC
+;   50				return 0;
+.LINE 50
+
+	OR	A,A
+	SBC	HL,HL
+	JR	L_15
+;   51			}
+;   52		}
+L_4:
+.LINE 52
+
+;   53		
+;   54		// set vdu 23/28 to start HEXLOAD code at VDU
+;   55		putch(23);
+.LINE 55
+
+	LD	BC,23
+	PUSH	BC
+	CALL	_putch
+	POP	BC
+;   56		putch(28);
+.LINE 56
+
+	LD	BC,28
+	PUSH	BC
+	CALL	_putch
+	POP	BC
+;   57		// We can't transmit any text during bytestream reception, so the VDU handles this
+;   58		
+;   59		addressvalue = getTransparentByte(); 			// LSB
+.LINE 59
+
+	CALL	_getTransparentByte
+	LD	B,A
+	LD	A,B
+	SEXT	HL
+	LD	L,B
+	LD	(IX+%FFFFFFF6),HL
+;   60		addressvalue |= (getTransparentByte() << 8);
+.LINE 60
+
+	CALL	_getTransparentByte
+	LD	B,A
+	LD	A,B
+	SEXT	HL
+	LD	L,B
+	LD	A,%8
+	CALL	__ishl_b
+	LD	BC,(IX+%FFFFFFF6)
+	CALL	__ior
+	LD	(IX+%FFFFFFF6),HL
+;   61		addressvalue |= (getTransparentByte() << 16);	// MSB
+.LINE 61
+
+	CALL	_getTransparentByte
+	LD	B,A
+	LD	A,B
+	SEXT	HL
+	LD	L,B
+	LD	A,%10
+	CALL	__ishl_b
+	LD	BC,(IX+%FFFFFFF6)
+	CALL	__ior
+	LD	(IX+%FFFFFFF6),HL
+;   62	
+;   63		if(!file && addressvalue) addr = (UINT8 *)addressvalue;
+.LINE 63
+
+	LD	A,(IX+%FFFFFFF9)
+	OR	A,A
+	JR	NZ,L_7
+	LD	HL,(IX+%FFFFFFF6)
+	CALL	__icmpzero
+	JR	Z,L_7
+	LD	BC,(IX+%FFFFFFF6)
+	LD	(IX+%FFFFFFFD),BC
+;   64		else addr = (UINT8 *)MOS_defaultLoadAddress;
+.LINE 64
+
+	JR	L_8
+L_7:
+	LD	BC,262144
+	LD	(IX+%FFFFFFFD),BC
+L_8:
+;   65	
+;   66		start = addr;
+.LINE 66
+
+	LD	BC,(IX+%FFFFFFFD)
+	LD	(IX+%FFFFFFFA),BC
+;   67		addr += receive_bytestream(addr);
+.LINE 67
+
+	LD	BC,(IX+%FFFFFFFD)
+	PUSH	BC
+	LD	(IX+%FFFFFFF1),A
+	CALL	_receive_bytestream
+	LD	A,(IX+%FFFFFFF1)
+	POP	BC
+	LD	BC,(IX+%FFFFFFFD)
+	ADD	HL,BC
+	LD	(IX+%FFFFFFFD),HL
+;   68		
+;   69		crc = crc32((const char *)start, (addr - start));
+.LINE 69
+
+	LD	BC,(IX+%FFFFFFFA)
+	LD	HL,(IX+%FFFFFFFD)
+	OR	A,A
+	SBC	HL,BC
+	LD	BC,HL
+	CALL	__itol
+	LD	DE,BC
+	LD	C,A
+	LD	B,%0
+	PUSH	BC
+	PUSH	DE
+	LD	BC,(IX+%FFFFFFFA)
+	PUSH	BC
+	CALL	_crc32
+	POP	BC
+	POP	BC
+	POP	BC
+	LD	(IX+%FFFFFFF2),HL
+	LD	(IX+%FFFFFFF5),E
+;   70		// VDP will match this to it's own CRC32 and show the result
+;   71		putch(crc & 0xFF); // LSB
+.LINE 71
+
+	LD	HL,(IX+%FFFFFFF2)
+	LD	A,L
+	UEXT	HL
+	LD	L,A
+	PUSH	HL
+	CALL	_putch
+	POP	BC
+;   72		putch((crc & 0xFF00) >> 8);
+.LINE 72
+
+	LD	BC,(IX+%FFFFFFF2)
+	LD	A,(IX+%FFFFFFF5)
+	LD	L,%8
+	CALL	__lshru
+	UEXT	HL
+	LD	L,C
+	PUSH	HL
+	CALL	_putch
+	POP	BC
+;   73		putch((crc & 0xFF0000) >> 16);
+.LINE 73
+
+	LD	BC,(IX+%FFFFFFF2)
+	LD	A,(IX+%FFFFFFF5)
+	LD	L,%10
+	CALL	__lshru
+	UEXT	HL
+	LD	L,C
+	PUSH	HL
+	CALL	_putch
+	POP	BC
+;   74		putch((crc & 0xFF000000) >> 24); // MSB
+.LINE 74
+
+	LD	A,(IX+%FFFFFFF5)
+	UEXT	HL
+	LD	L,A
+	LD	BC,HL
+	UEXT	HL
+	LD	L,C
+	PUSH	HL
+	LD	(IX+%FFFFFFF1),A
+	CALL	_putch
+	LD	A,(IX+%FFFFFFF1)
+	POP	BC
+;   75		
+;   76	
+;   77		printf("ez80: %ld bytes\r\n",addr-start);
+.LINE 77
+
+	LD	BC,___print_uputch
+	LD	(___print_xputch),BC
+	LD	BC,L__8
+	PUSH	BC
+	LD	(IX+%FFFFFFF1),A
+	CALL	___print_sendstring
+	LD	A,(IX+%FFFFFFF1)
+	POP	BC
+	LD	BC,(IX+%FFFFFFFA)
+	LD	HL,(IX+%FFFFFFFD)
+	OR	A,A
+	SBC	HL,BC
+	LD	BC,HL
+	CALL	__itol
+	LD	DE,BC
+	LD	C,A
+	LD	B,%0
+	PUSH	BC
+	PUSH	DE
+	CALL	__u_ltoa
+	POP	BC
+	POP	BC
+	LD	BC,L__9
+	PUSH	BC
+	CALL	___print_sendstring
+	POP	BC
+;   78		
+;   79		if(file) 
+.LINE 79
+
+	LD	A,(IX+%FFFFFFF9)
+	OR	A,A
+	JR	Z,L_14
+;   80		{
+;   81			printf("Writing data to \"%s\"\r\n",argv[1]);
+.LINE 81
+
+	LD	BC,___print_uputch
+	LD	(___print_xputch),BC
+	LD	BC,L__11
+	PUSH	BC
+	CALL	___print_sendstring
+	POP	BC
+	LD	IY,(IX+%9)
+	LEA	HL,IY+%3
+	LD	BC,(HL)
+	PUSH	BC
+	CALL	___print_sendstring
+	POP	BC
+	LD	BC,L__12
+	PUSH	BC
+	CALL	___print_sendstring
+	POP	BC
+;   82			while(start != addr)
+.LINE 82
+
+	JR	L_10
+L_11:
+;   83			{
+;   84				mos_fputc(file,*start);
+.LINE 84
+
+	LD	HL,(IX+%FFFFFFFA)
+	LD	C,(HL)
+	LD	B,%0
+	PUSH	BC
+	LD	C,(IX+%FFFFFFF9)
+	PUSH	BC
+	CALL	_mos_fputc
+	POP	BC
+	POP	BC
+;   85				start++;
+.LINE 85
+
+	LD	BC,(IX+%FFFFFFFA)
+	INC	BC
+	LD	(IX+%FFFFFFFA),BC
+;   86			}
+L_10:
+.LINE 86
+
+	LD	BC,(IX+%FFFFFFFD)
+	LD	HL,(IX+%FFFFFFFA)
+	OR	A,A
+	SBC	HL,BC
+	JR	NZ,L_11
+;   87			mos_fclose(file);
+.LINE 87
+
+	LD	C,(IX+%FFFFFFF9)
+	LD	B,%0
+	PUSH	BC
+	CALL	_mos_fclose
+	POP	BC
+;   88		}
+L_14:
+.LINE 88
+
+;   89		return 0;
+.LINE 89
+
+	OR	A,A
+	SBC	HL,HL
+;   90	}
+L_15:
+.LINE 90
+
+	LD	SP,IX
+	POP	IX
+	RET	
+
+
+;**************************** _main ***************************
+;Name                         Addr/Register   Size   Type
+;_mos_fclose                         IMPORT  -----   function
+;_mos_fputc                          IMPORT  -----   function
+;__u_ltoa                            IMPORT  -----   function
+;_crc32                              IMPORT  -----   function
+;_receive_bytestream                 IMPORT  -----   function
+;_getTransparentByte                 IMPORT  -----   function
+;_putch                              IMPORT  -----   function
+;_mos_fopen                          IMPORT  -----   function
+;___print_sendstring                 IMPORT  -----   function
+;___print_xputch                     IMPORT      3   variable
+;___print_uputch                     IMPORT  -----   function
+;crc                                  IX-14      4   variable
+;addressvalue                         IX-10      3   variable
+;file                                  IX-7      1   variable
+;start                                 IX-6      3   variable
+;addr                                  IX-3      3   variable
+;argv                                  IX+9      3   parameter
+;argc                                  IX+6      3   parameter
+
+
+; Stack Frame Size: 27 (bytes)
+;       Spill Code: 0 (instruction)
+
+
+.ENDFUNC "main",90,"_main"
+	SEGMENT STRSECT
+L__1:
+	DB	"Usage: HEXLOAD [filename]"
+	DB	13,10,0
+L__4:
+	DB	"Error opening \""
+	DB	0
+L__5:
+	DB	"\""
+	DB	13,10,0
+L__8:
+	DB	"ez80: "
+	DB	0
+L__9:
+	DB	" bytes"
+	DB	13,10,0
+L__11:
+	DB	"Writing data to \""
+	DB	0
+L__12:
+	DB	"\""
+	DB	13,10,0
+	SEGMENT CODE
+;   91	
+;   92	// Calculate a CRC32 over a block of memory
+;   93	// Parameters:
+;   94	// - s: Pointer to a memory location
+;   95	// - length: Size of memoryblock in bytes
+;   96	UINT32 crc32(const char *s, UINT32 length)
+;   97	{
+_crc32:
+.DEFINE "_crc32"
+
+.VALUE _crc32
+
+.CLASS 2
+
+.TYPE 79
+
+.ENDEF
+
+.BEGFUNC "crc32",97,"_crc32"
+
+.LINE 97
+
+.DEFINE "s"
+
+.CLASS 65
+
+.VALUE 6
+
+.TYPE 194
+
+.ENDEF
+
+.DEFINE "length"
+
+.CLASS 65
+
+.VALUE 9
+
+.TYPE 15
+
+.ENDEF
+
+.DEFINE "i"
+
+.CLASS 65
+
+.VALUE -4
+
+.TYPE 15
+
+.ENDEF
+
+.DEFINE "j"
+
+.CLASS 65
+
+.VALUE -8
+
+.TYPE 15
+
+.ENDEF
+
+.DEFINE "ch"
+
+.CLASS 65
+
+.VALUE -9
+
+.TYPE 2
+
+.ENDEF
+
+.DEFINE "ch"
+
+.CLASS 65
+
+.VALUE -13
+
+.TYPE 15
+
+.ENDEF
+
+.DEFINE "b"
+
+.CLASS 65
+
+.VALUE -17
+
+.TYPE 15
+
+.ENDEF
+
+.DEFINE "t"
+
+.CLASS 65
+
+.VALUE -21
+
+.TYPE 15
+
+.ENDEF
+
+;   98	  static UINT32 crc;
+.LINE 98
+
+.DEFINE "crc"
+
+.ALIAS "_0crc"
+
+.CLASS 83
+
+.VALUE _0crc
+
+.TYPE 15
+
+.ENDEF
+
+;   99	  static UINT32 crc32_table[256];
+.LINE 99
+
+.DEFINE "crc32_table"
+
+.ALIAS "_1crc32_table"
+
+.CLASS 83
+
+.VALUE _1crc32_table
+
+.DIM 256
+
+.TYPE 111
+
+.ENDEF
+
+	PUSH	IX
+	LD	IX,0
+	ADD	IX,SP
+	LEA	HL,IX+%FFFFFFEA
+	LD	SP,HL
+;  100	  UINT32 i,ch,j,b,t; 
+;  101	
+;  102	  // init a crc32 lookup table, fastest way to process the entire block
+;  103	  for(i = 0; i < 256; i++)
+.LINE 103
+
+	LD	BC,0
+	XOR	A,A
+	LD	(IX+%FFFFFFFC),BC
+	LD	(IX+%FFFFFFFF),A
+	JR	L_26
+L_24:
+;  104	  {
+;  105	    ch = i;
+.LINE 105
+
+	LD	BC,(IX+%FFFFFFFC)
+	LD	A,(IX+%FFFFFFFF)
+	LD	(IX+%FFFFFFF3),BC
+	LD	(IX+%FFFFFFF6),A
+;  106	    crc = 0;
+.LINE 106
+
+	LD	BC,0
+	XOR	A,A
+	LD	(_0crc),BC
+	LD	(_0crc+3),A
+;  107	    for(j = 0; j < 8; j++)
+.LINE 107
+
+	XOR	A,A
+	LD	(IX+%FFFFFFF8),BC
+	LD	(IX+%FFFFFFFB),A
+	JR	L_22
+L_20:
+;  108	    {
+;  109		  b=(ch^crc)&1;
+.LINE 109
+
+	LD	HL,(_0crc)
+	LD	A,(_0crc+3)
+	LD	E,A
+	LD	BC,(IX+%FFFFFFF3)
+	LD	A,(IX+%FFFFFFF6)
+	CALL	__lxor
+	LD	BC,HL
+	LD	A,C
+	AND	A,%1
+	UEXT	HL
+	LD	L,A
+	LD	(IX+%FFFFFFEF),HL
+	LD	(IX+%FFFFFFF2),H
+;  110		  crc>>=1;
+.LINE 110
+
+	LD	BC,(_0crc)
+	LD	A,(_0crc+3)
+	LD	L,%1
+	CALL	__lshru
+	LD	(_0crc),BC
+	LD	(_0crc+3),A
+;  111		  if(b) crc=crc^0xEDB88320;
+.LINE 111
+
+	LD	HL,(IX+%FFFFFFEF)
+	LD	E,(IX+%FFFFFFF2)
+	CALL	__lcmpzero
+	JR	Z,L_19
+	LD	HL,(_0crc)
+	LD	A,(_0crc+3)
+	LD	E,A
+	LD	BC,12092192
+	LD	A,%ED
+	CALL	__lxor
+	LD	(_0crc),HL
+	LD	A,E
+	LD	(_0crc+3),A
+L_19:
+;  112		  ch>>=1;
+.LINE 112
+
+	LD	BC,(IX+%FFFFFFF3)
+	LD	A,(IX+%FFFFFFF6)
+	LD	L,%1
+	CALL	__lshru
+	LD	(IX+%FFFFFFF3),BC
+	LD	(IX+%FFFFFFF6),A
+	LD	HL,(IX+%FFFFFFF8)
+	LD	E,(IX+%FFFFFFFB)
+	LD	A,%1
+	CALL	__ladd_b
+	LD	(IX+%FFFFFFF8),HL
+	LD	(IX+%FFFFFFFB),E
+;  113	    }
+L_22:
+.LINE 113
+
+	LD	HL,(IX+%FFFFFFF8)
+	LD	E,(IX+%FFFFFFFB)
+	LD	BC,8
+	XOR	A,A
+	CALL	__lcmpu
+	JR	C,L_20
+;  114	    crc32_table[i] = crc;
+.LINE 114
+
+	LD	HL,(IX+%FFFFFFFC)
+	LD	E,(IX+%FFFFFFFF)
+	LD	BC,4
+	XOR	A,A
+	CALL	__lmulu
+	LD	BC,_1crc32_table
+	ADD	HL,BC
+	LD	BC,(_0crc)
+	LD	A,(_0crc+3)
+	LD	(HL),BC
+	INC	HL
+	INC	HL
+	INC	HL
+	LD	(HL),A
+	LD	HL,(IX+%FFFFFFFC)
+	LD	E,(IX+%FFFFFFFF)
+	LD	A,%1
+	CALL	__ladd_b
+	LD	(IX+%FFFFFFFC),HL
+	LD	(IX+%FFFFFFFF),E
+;  115	  }        
+L_26:
+.LINE 115
+
+	LD	HL,(IX+%FFFFFFFC)
+	LD	E,(IX+%FFFFFFFF)
+	LD	BC,256
+	XOR	A,A
+	CALL	__lcmpu
+	JR	C,L_24
+;  116	
+;  117	  // calculate the crc using the table
+;  118	  crc = 0xFFFFFFFF;
+.LINE 118
+
+	LD	BC,16777215
+	LD	A,%FF
+	LD	(_0crc),BC
+	LD	(_0crc+3),A
+;  119	  for(i=0;i<length;i++)
+.LINE 119
+
+	LD	BC,0
+	XOR	A,A
+	LD	(IX+%FFFFFFFC),BC
+	LD	(IX+%FFFFFFFF),A
+	JR	L_31
+L_29:
+;  120	  {
+;  121	    char ch=s[i];
+.LINE 121
+
+	LD	BC,(IX+%FFFFFFFC)
+	LD	HL,(IX+%6)
+	ADD	HL,BC
+	LD	A,(HL)
+	LD	(IX+%FFFFFFF7),A
+;  122	    t=(ch^crc)&0xFF;
+.LINE 122
+
+	SEXT	HL
+	LD	L,(IX+%FFFFFFF7)
+	LD	BC,HL
+	LD	(IX+%FFFFFFEA),H
+	LD	HL,(_0crc)
+	LD	A,(_0crc+3)
+	LD	E,A
+	LD	A,(IX+%FFFFFFEA)
+	CALL	__lxor
+	LD	BC,HL
+	UEXT	HL
+	LD	L,C
+	LD	(IX+%FFFFFFEB),HL
+	LD	(IX+%FFFFFFEE),H
+;  123	    crc=(crc>>8)^crc32_table[t];
+.LINE 123
+
+	LD	HL,(IX+%FFFFFFEB)
+	LD	E,(IX+%FFFFFFEE)
+	LD	BC,4
+	XOR	A,A
+	CALL	__lmulu
+	LD	BC,_1crc32_table
+	ADD	HL,BC
+	LD	IY,HL
+	LD	BC,(_0crc)
+	LD	A,(_0crc+3)
+	LD	L,%8
+	CALL	__lshru
+	LD	HL,(IY)
+	LD	E,(IY+%3)
+	CALL	__lxor
+	LD	(_0crc),HL
+	LD	A,E
+	LD	(_0crc+3),A
+	LD	HL,(IX+%FFFFFFFC)
+	LD	E,(IX+%FFFFFFFF)
+	LD	A,%1
+	CALL	__ladd_b
+	LD	(IX+%FFFFFFFC),HL
+	LD	(IX+%FFFFFFFF),E
+;  124	  }
+L_31:
+.LINE 124
+
+	LD	HL,(IX+%FFFFFFFC)
+	LD	E,(IX+%FFFFFFFF)
+	LD	BC,(IX+%9)
+	LD	A,(IX+%C)
+	CALL	__lcmpu
+	JR	C,L_29
+;  125	
+;  126	  return ~crc;
+.LINE 126
+
+	LD	HL,(_0crc)
+	LD	A,(_0crc+3)
+	LD	E,A
+	CALL	__lnot
+;  127	}
+.LINE 127
+
+	LD	SP,IX
+	POP	IX
+	RET	
+
+
+;**************************** _crc32 ***************************
+;Name                         Addr/Register   Size   Type
+;_1crc32_table                       STATIC   1024   variable
+;_0crc                               STATIC      4   variable
+;t                                    IX-21      4   variable
+;b                                    IX-17      4   variable
+;ch                                   IX-13      4   variable
+;ch                                    IX-9      1   variable
+;j                                     IX-8      4   variable
+;i                                     IX-4      4   variable
+;length                                IX+9      4   parameter
+;s                                     IX+6      3   parameter
+
+
+; Stack Frame Size: 37 (bytes)
+;       Spill Code: 0 (instruction)
+
+
+.ENDFUNC "crc32",127,"_crc32"
+	SEGMENT BSS
+_0crc:
+	DS	4*1
+_1crc32_table:
+	DS	1024
+	XREF _getTransparentByte:ROM
+	XREF _receive_bytestream:ROM
+	XREF _mos_fputc:ROM
+	XREF _mos_fclose:ROM
+	XREF _mos_fopen:ROM
+	XREF _putch:ROM
+	XREF __u_ltoa:ROM
+	XREF ___print_sendstring:ROM
+	XREF ___print_xputch:ROM
+	XREF ___print_uputch:ROM
+	XREF __lcmpu:ROM
+	XREF __lmulu:ROM
+	XREF __lnot:ROM
+	XREF __ior:ROM
+	XREF __lxor:ROM
+	XREF __lshru:ROM
+	XREF __itol:ROM
+	XREF __setflag:ROM
+	XREF __icmpzero:ROM
+	XREF __lcmpzero:ROM
+	XREF __ladd_b:ROM
+	XREF __ishl_b:ROM
+	XDEF _crc32
+	XDEF _main
+	END

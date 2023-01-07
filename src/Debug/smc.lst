@@ -1,0 +1,31 @@
+Zilog eZ80 Macro Assembler Version 4.3 (19073001) RELISTED17-Dec-22     15:02:02     page:   1
+
+
+PC     Object              I  Line    Source 
+                           A     1    	XDEF _copySelfReset
+                           A     2    	XDEF _endcopySelfReset
+                           A     3    	
+                           A     4    	segment CODE
+                           A     5    	.assume ADL=1
+                           A     6    
+0B051B                     A     7    _copySelfReset:
+0B051B DDE5                A     8    	push	ix
+0B051D DD210000 00         A     9    	ld		ix,0
+0B0522 DD39                A    10    	add		ix,sp
+                           A    11    		
+0B0524 DD1706              A    12    	ld		de, (ix+6)	; destination address
+0B0527 DD2709              A    13    	ld		hl, (ix+9)	; source
+0B052A DD070C              A    14    	ld		bc, (ix+12)	; number of bytes to wr
+0B052D EDB0                A    15    	ldir
+                           A    16    
+0B052F C7                  A    17    	rst		0
+                           A    18    	; will never get here
+                           A    19    	
+0B0530                     A    20    _endcopySelfReset:
+                           A    21    	
+                           A    22    end
+
+
+Errors: 0
+Warnings: 0
+Lines Assembled: 23

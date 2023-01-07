@@ -1,0 +1,1076 @@
+Zilog eZ80 Macro Assembler Version 4.3 (19073001) RELISTED06-Jan-23     16:18:23     page:   1
+
+
+PC     Object              I  Line    Source 
+                           A     1    ; Zilog eZ80 ANSI C Compiler Release 3.4
+                           A     2    ; -nomodsect -optsize -noreduceopt -nopadbranch
+                           A     3    ; -peephole -globalopt -localcse -const=ROM 
+                           A     4    	FILE	"..\main.c"
+                           A     5    	.assume ADL=1
+                           A     6    .DEBUG "C"
+                           A     7    	SEGMENT CODE
+                           A     8    .BEGREC "fmt_type",19
+                           A     9    .DEFINE "status"
+                           A    10    .VALUE 0
+                           A    11    .CLASS 8
+                           A    12    .TYPE 12
+                           A    13    .ENDEF
+                           A    14    .DEFINE "flags"
+                           A    15    .VALUE 1
+                           A    16    .CLASS 8
+                           A    17    .TYPE 12
+                           A    18    .ENDEF
+                           A    19    .DEFINE "size"
+                           A    20    .VALUE 2
+                           A    21    .CLASS 8
+                           A    22    .TYPE 2
+                           A    23    .ENDEF
+                           A    24    .DEFINE "chr"
+                           A    25    .VALUE 3
+                           A    26    .CLASS 8
+                           A    27    .TYPE 2
+                           A    28    .ENDEF
+                           A    29    .DEFINE "type"
+                           A    30    .VALUE 4
+                           A    31    .CLASS 8
+                           A    32    .TYPE 2
+                           A    33    .ENDEF
+                           A    34    .DEFINE "field_width"
+                           A    35    .VALUE 5
+                           A    36    .CLASS 8
+                           A    37    .TYPE 2
+                           A    38    .ENDEF
+                           A    39    .DEFINE "precision"
+                           A    40    .VALUE 6
+                           A    41    .CLASS 8
+                           A    42    .TYPE 2
+                           A    43    .ENDEF
+                           A    44    .DEFINE "set_begin"
+                           A    45    .VALUE 7
+                           A    46    .CLASS 8
+                           A    47    .TYPE 34
+                           A    48    .ENDEF
+                           A    49    .DEFINE "set_end"
+                           A    50    .VALUE 10
+                           A    51    .CLASS 8
+                           A    52    .TYPE 34
+                           A    53    .ENDEF
+                           A    54    .DEFINE "pad_whole"
+                           A    55    .VALUE 13
+                           A    56    .CLASS 8
+                           A    57    .TYPE 12
+                           A    58    .ENDEF
+                           A    59    .DEFINE "pad_pre_fract"
+                           A    60    .VALUE 14
+                           A    61    .CLASS 8
+                           A    62    .TYPE 12
+                           A    63    .ENDEF
+                           A    64    .DEFINE "pad_post_fract"
+                           A    65    .VALUE 15
+                           A    66    .CLASS 8
+                           A    67    .TYPE 12
+                           A    68    .ENDEF
+                           A    69    .DEFINE "pad_at"
+                           A    70    .VALUE 16
+                           A    71    .CLASS 8
+                           A    72    .TYPE 34
+                           A    73    .ENDEF
+                           A    74    .ENDREC "fmt_type"
+                           A    75    .BEGREC "flt_info",12
+                           A    76    .DEFINE "flags"
+                           A    77    .VALUE 0
+                           A    78    .CLASS 8
+                           A    79    .TYPE 12
+                           A    80    .ENDEF
+                           A    81    .DEFINE "exp"
+                           A    82    .VALUE 1
+                           A    83    .CLASS 8
+                           A    84    .TYPE 2
+                           A    85    .ENDEF
+                           A    86    .DEFINE "digits"
+                           A    87    .VALUE 2
+                           A    88    .CLASS 8
+                           A    89    .DIM 10
+                           A    90    .TYPE 108
+                           A    91    .ENDEF
+                           A    92    .ENDREC "flt_info"
+                           A    93    ;    1	/*
+                           A    94    ;    2	 * Title:			AGON Hexload code
+                           A    95    ;    3	 * Author:			Jeroen Venema
+                           A    96    ;    4	 * Created:			22/10/2022
+                           A    97    ;    5	 * Last Updated:	26/11/2022
+                           A    98    ;    6	 * 
+                           A    99    ;    7	 * Modinfo:
+                           A   100    ;    8	 * 22/10/2022:		Initial version MOS
+                           A   101    ;    9	 * 23/10/2022:		Receive_bytestream 
+                           A   102    ;   10	 * 26/11/2022:		MOS commandline ver
+                           A   103    ;   11	 */
+                           A   104    ;   12	
+                           A   105    ;   13	#define MOS_defaultLoadAddress 0x40000	
+                           A   106    ;   14	
+                           A   107    ;   15	#include <stdio.h>
+                           A   108    ;   16	#include "mos-interface.h"
+                           A   109    ;   17	
+                           A   110    ;   18	UINT32 crc32(const char *s, UINT32 leng
+                           A   111    ;   19	extern UINT24 receive_bytestream(UINT8 
+                           A   112    ;   20	extern char getTransparentByte(void);
+                           A   113    ;   21	
+                           A   114    ;   22	
+                           A   115    ;   23	typedef void * rom_set_vector(unsigned 
+                           A   116    ;   24	
+                           A   117    ;   25	// Receive a bytestream from the VDU, i
+                           A   118    ;   26	// Accepts an extended address from the
+                           A   119    ;   27	// If the received address is 0, the de
+                           A   120    ;   28	int main(int argc, char * argv[]) {
+0B00D7                     A   121    _main:
+                           A   122    .DEFINE "_main"
+                           A   123    
+                           A   124    .VALUE _main
+                           A   125    
+                           A   126    .CLASS 2
+                           A   127    
+                           A   128    .TYPE 68
+                           A   129    
+                           A   130    .ENDEF
+                           A   131    
+                           A   132    .BEGFUNC "main",28,"_main"
+                           A   133    
+                           A   134    .LINE 28
+                           A   135    
+                           A   136    .DEFINE "argc"
+                           A   137    
+                           A   138    .CLASS 65
+                           A   139    
+                           A   140    .VALUE 6
+                           A   141    
+                           A   142    .TYPE 4
+                           A   143    
+                           A   144    .ENDEF
+                           A   145    
+                           A   146    .DEFINE "argv"
+                           A   147    
+                           A   148    .CLASS 65
+                           A   149    
+                           A   150    .VALUE 9
+                           A   151    
+                           A   152    .TYPE 290
+                           A   153    
+                           A   154    .ENDEF
+                           A   155    
+                           A   156    .DEFINE "addr"
+                           A   157    
+                           A   158    .CLASS 65
+                           A   159    
+                           A   160    .VALUE -3
+                           A   161    
+                           A   162    .TYPE 44
+                           A   163    
+                           A   164    .ENDEF
+                           A   165    
+                           A   166    .DEFINE "start"
+                           A   167    
+                           A   168    .CLASS 65
+                           A   169    
+                           A   170    .VALUE -6
+                           A   171    
+                           A   172    .TYPE 44
+                           A   173    
+                           A   174    .ENDEF
+                           A   175    
+                           A   176    .DEFINE "file"
+                           A   177    
+                           A   178    .CLASS 65
+                           A   179    
+                           A   180    .VALUE -7
+                           A   181    
+                           A   182    .TYPE 12
+                           A   183    
+                           A   184    .ENDEF
+                           A   185    
+                           A   186    .DEFINE "addressvalue"
+                           A   187    
+                           A   188    .CLASS 65
+                           A   189    
+                           A   190    .VALUE -10
+                           A   191    
+                           A   192    .TYPE 14
+                           A   193    
+                           A   194    .ENDEF
+                           A   195    
+                           A   196    .DEFINE "crc"
+                           A   197    
+                           A   198    .CLASS 65
+                           A   199    
+                           A   200    .VALUE -14
+                           A   201    
+                           A   202    .TYPE 15
+                           A   203    
+                           A   204    .ENDEF
+                           A   205    
+0B00D7 DDE5                A   206    	PUSH	IX
+0B00D9 DD210000 00         A   207    	LD	IX,0
+0B00DE DD39                A   208    	ADD	IX,SP
+0B00E0 ED22F1              A   209    	LEA	HL,IX+%FFFFFFF1
+0B00E3 F9                  A   210    	LD	SP,HL
+                           A   211    ;   29		UINT32 crc;
+                           A   212    ;   30		UINT24 addressvalue;
+                           A   213    ;   31		UINT8 *addr,*start;
+                           A   214    ;   32		UINT8 n,value, count;
+                           A   215    ;   33		UINT8 done = 0;
+                           A   216    ;   34		UINT8 file = 0;
+                           A   217    .LINE 34
+                           A   218    
+0B00E4 DD36F900            A   219    	LD	(IX+%FFFFFFF9),%0
+                           A   220    ;   35		
+                           A   221    ;   36		rom_set_vector *set_vector = (rom_s
+                           A   222    ;   37		
+                           A   223    ;   38		if(argc > 2)
+                           A   224    .LINE 38
+                           A   225    
+0B00E8 DD0706              A   226    	LD	BC,(IX+%6)
+0B00EB 21020000            A   227    	LD	HL,2
+0B00EF B7                  A   228    	OR	A,A
+0B00F0 ED42                A   229    	SBC	HL,BC
+0B00F2 CD 37 06 0B         A   230    	CALL	__setflag
+0B00F6 F2 14 01 0B         A   231    	JP	P,L_3
+                           A   232    ;   39		{
+                           A   233    ;   40			printf("Usage: HEXLOAD [filenam
+                           A   234    .LINE 40
+                           A   235    
+0B00FA 01 E1 07 0B         A   236    	LD	BC,___print_uputch
+0B00FE ED43 29 0F 0B       A   237    	LD	(___print_xputch),BC
+0B0103 01 2C 0F 0B         A   238    	LD	BC,L__1
+0B0107 C5                  A   239    	PUSH	BC
+0B0108 CD 46 06 0B         A   240    	CALL	___print_sendstring
+0B010C C1                  A   241    	POP	BC
+                           A   242    ;   41			return 0;
+                           A   243    .LINE 41
+                           A   244    
+0B010D B7                  A   245    	OR	A,A
+0B010E ED62                A   246    	SBC	HL,HL
+0B0110 C3 18 03 0B         A   247    	JR	L_15
+                           A   248    ;   42		}
+0B0114                     A   249    L_3:
+                           A   250    .LINE 42
+                           A   251    
+                           A   252    ;   43		
+                           A   253    ;   44		if(argc == 2)
+                           A   254    .LINE 44
+                           A   255    
+0B0114 01020000            A   256    	LD	BC,2
+0B0118 DD2706              A   257    	LD	HL,(IX+%6)
+0B011B B7                  A   258    	OR	A,A
+0B011C ED42                A   259    	SBC	HL,BC
+0B011E 20 4C               A   260    	JR	NZ,L_4
+                           A   261    ;   45		{
+                           A   262    ;   46			file = mos_fopen(argv[1], fa_wr
+                           A   263    .LINE 46
+                           A   264    
+0B0120 010A0000            A   265    	LD	BC,10
+0B0124 C5                  A   266    	PUSH	BC
+0B0125 DD3109              A   267    	LD	IY,(IX+%9)
+0B0128 ED2303              A   268    	LEA	HL,IY+%3
+0B012B ED07                A   269    	LD	BC,(HL)
+0B012D C5                  A   270    	PUSH	BC
+0B012E CD 64 05 0B         A   271    	CALL	_mos_fopen
+0B0132 C1                  A   272    	POP	BC
+0B0133 C1                  A   273    	POP	BC
+0B0134 DD77F9              A   274    	LD	(IX+%FFFFFFF9),A
+                           A   275    ;   47			if(!file)
+                           A   276    .LINE 47
+                           A   277    
+0B0137 B7                  A   278    	OR	A,A
+0B0138 20 32               A   279    	JR	NZ,L_4
+                           A   280    ;   48			{
+                           A   281    ;   49				printf("Error opening \"%s\
+                           A   282    .LINE 49
+                           A   283    
+0B013A 01 E1 07 0B         A   284    	LD	BC,___print_uputch
+0B013E ED43 29 0F 0B       A   285    	LD	(___print_xputch),BC
+0B0143 01 48 0F 0B         A   286    	LD	BC,L__4
+0B0147 C5                  A   287    	PUSH	BC
+0B0148 CD 46 06 0B         A   288    	CALL	___print_sendstring
+0B014C C1                  A   289    	POP	BC
+0B014D DD3109              A   290    	LD	IY,(IX+%9)
+0B0150 ED2303              A   291    	LEA	HL,IY+%3
+0B0153 ED07                A   292    	LD	BC,(HL)
+0B0155 C5                  A   293    	PUSH	BC
+0B0156 CD 46 06 0B         A   294    	CALL	___print_sendstring
+0B015A C1                  A   295    	POP	BC
+0B015B 01 58 0F 0B         A   296    	LD	BC,L__5
+0B015F C5                  A   297    	PUSH	BC
+0B0160 CD 46 06 0B         A   298    	CALL	___print_sendstring
+0B0164 C1                  A   299    	POP	BC
+                           A   300    ;   50				return 0;
+                           A   301    .LINE 50
+                           A   302    
+0B0165 B7                  A   303    	OR	A,A
+0B0166 ED62                A   304    	SBC	HL,HL
+0B0168 C3 18 03 0B         A   305    	JR	L_15
+                           A   306    ;   51			}
+                           A   307    ;   52		}
+0B016C                     A   308    L_4:
+                           A   309    .LINE 52
+                           A   310    
+                           A   311    ;   53		
+                           A   312    ;   54		// set vdu 23/28 to start HEXLOAD c
+                           A   313    ;   55		putch(23);
+                           A   314    .LINE 55
+                           A   315    
+0B016C 01170000            A   316    	LD	BC,23
+0B0170 C5                  A   317    	PUSH	BC
+0B0171 CD FE 04 0B         A   318    	CALL	_putch
+0B0175 C1                  A   319    	POP	BC
+                           A   320    ;   56		putch(28);
+                           A   321    .LINE 56
+                           A   322    
+0B0176 011C0000            A   323    	LD	BC,28
+0B017A C5                  A   324    	PUSH	BC
+0B017B CD FE 04 0B         A   325    	CALL	_putch
+0B017F C1                  A   326    	POP	BC
+                           A   327    ;   57		// We can't transmit any text durin
+                           A   328    ;   58		
+                           A   329    ;   59		addressvalue = getTransparentByte()
+                           A   330    .LINE 59
+                           A   331    
+0B0180 CD D3 05 0B         A   332    	CALL	_getTransparentByte
+0B0184 47                  A   333    	LD	B,A
+0B0185 78                  A   334    	LD	A,B
+0B0186 17ED62              A   335    	SEXT	HL
+0B0189 68                  A   336    	LD	L,B
+0B018A DD2FF6              A   337    	LD	(IX+%FFFFFFF6),HL
+                           A   338    ;   60		addressvalue |= (getTransparentByte
+                           A   339    .LINE 60
+                           A   340    
+0B018D CD D3 05 0B         A   341    	CALL	_getTransparentByte
+0B0191 47                  A   342    	LD	B,A
+0B0192 78                  A   343    	LD	A,B
+0B0193 17ED62              A   344    	SEXT	HL
+0B0196 68                  A   345    	LD	L,B
+0B0197 3E08                A   346    	LD	A,%8
+0B0199 CD 77 0E 0B         A   347    	CALL	__ishl_b
+0B019D DD07F6              A   348    	LD	BC,(IX+%FFFFFFF6)
+0B01A0 CD C6 07 0B         A   349    	CALL	__ior
+0B01A4 DD2FF6              A   350    	LD	(IX+%FFFFFFF6),HL
+                           A   351    ;   61		addressvalue |= (getTransparentByte
+                           A   352    .LINE 61
+                           A   353    
+0B01A7 CD D3 05 0B         A   354    	CALL	_getTransparentByte
+0B01AB 47                  A   355    	LD	B,A
+0B01AC 78                  A   356    	LD	A,B
+0B01AD 17ED62              A   357    	SEXT	HL
+0B01B0 68                  A   358    	LD	L,B
+0B01B1 3E10                A   359    	LD	A,%10
+0B01B3 CD 77 0E 0B         A   360    	CALL	__ishl_b
+0B01B7 DD07F6              A   361    	LD	BC,(IX+%FFFFFFF6)
+0B01BA CD C6 07 0B         A   362    	CALL	__ior
+0B01BE DD2FF6              A   363    	LD	(IX+%FFFFFFF6),HL
+                           A   364    ;   62	
+                           A   365    ;   63		if(!file && addressvalue) addr = (U
+                           A   366    .LINE 63
+                           A   367    
+0B01C1 DD7EF9              A   368    	LD	A,(IX+%FFFFFFF9)
+0B01C4 B7                  A   369    	OR	A,A
+0B01C5 20 11               A   370    	JR	NZ,L_7
+0B01C7 DD27F6              A   371    	LD	HL,(IX+%FFFFFFF6)
+0B01CA CD 74 0B 0B         A   372    	CALL	__icmpzero
+0B01CE 28 08               A   373    	JR	Z,L_7
+0B01D0 DD07F6              A   374    	LD	BC,(IX+%FFFFFFF6)
+0B01D3 DD0FFD              A   375    	LD	(IX+%FFFFFFFD),BC
+                           A   376    ;   64		else addr = (UINT8 *)MOS_defaultLoa
+                           A   377    .LINE 64
+                           A   378    
+0B01D6 18 07               A   379    	JR	L_8
+0B01D8                     A   380    L_7:
+0B01D8 01000004            A   381    	LD	BC,262144
+0B01DC DD0FFD              A   382    	LD	(IX+%FFFFFFFD),BC
+0B01DF                     A   383    L_8:
+                           A   384    ;   65	
+                           A   385    ;   66		start = addr;
+                           A   386    .LINE 66
+                           A   387    
+0B01DF DD07FD              A   388    	LD	BC,(IX+%FFFFFFFD)
+0B01E2 DD0FFA              A   389    	LD	(IX+%FFFFFFFA),BC
+                           A   390    ;   67		addr += receive_bytestream(addr);
+                           A   391    .LINE 67
+                           A   392    
+0B01E5 DD07FD              A   393    	LD	BC,(IX+%FFFFFFFD)
+0B01E8 C5                  A   394    	PUSH	BC
+0B01E9 DD77F1              A   395    	LD	(IX+%FFFFFFF1),A
+0B01EC CD 04 06 0B         A   396    	CALL	_receive_bytestream
+0B01F0 DD7EF1              A   397    	LD	A,(IX+%FFFFFFF1)
+0B01F3 C1                  A   398    	POP	BC
+0B01F4 DD07FD              A   399    	LD	BC,(IX+%FFFFFFFD)
+0B01F7 09                  A   400    	ADD	HL,BC
+0B01F8 DD2FFD              A   401    	LD	(IX+%FFFFFFFD),HL
+                           A   402    ;   68		
+                           A   403    ;   69		crc = crc32((const char *)start, (a
+                           A   404    .LINE 69
+                           A   405    
+0B01FB DD07FA              A   406    	LD	BC,(IX+%FFFFFFFA)
+0B01FE DD27FD              A   407    	LD	HL,(IX+%FFFFFFFD)
+0B0201 B7                  A   408    	OR	A,A
+0B0202 ED42                A   409    	SBC	HL,BC
+0B0204 E5C1                A   410    	LD	BC,HL
+0B0206 CD D3 0D 0B         A   411    	CALL	__itol
+0B020A C5D1                A   412    	LD	DE,BC
+0B020C 4F                  A   413    	LD	C,A
+0B020D 0600                A   414    	LD	B,%0
+0B020F C5                  A   415    	PUSH	BC
+0B0210 D5                  A   416    	PUSH	DE
+0B0211 DD07FA              A   417    	LD	BC,(IX+%FFFFFFFA)
+0B0214 C5                  A   418    	PUSH	BC
+0B0215 CD 1D 03 0B         A   419    	CALL	_crc32
+0B0219 C1                  A   420    	POP	BC
+0B021A C1                  A   421    	POP	BC
+0B021B C1                  A   422    	POP	BC
+0B021C DD2FF2              A   423    	LD	(IX+%FFFFFFF2),HL
+0B021F DD73F5              A   424    	LD	(IX+%FFFFFFF5),E
+                           A   425    ;   70		// VDP will match this to it's own 
+                           A   426    ;   71		putch(crc & 0xFF); // LSB
+                           A   427    .LINE 71
+                           A   428    
+0B0222 DD27F2              A   429    	LD	HL,(IX+%FFFFFFF2)
+0B0225 7D                  A   430    	LD	A,L
+0B0226 B7ED62              A   431    	UEXT	HL
+0B0229 6F                  A   432    	LD	L,A
+0B022A E5                  A   433    	PUSH	HL
+0B022B CD FE 04 0B         A   434    	CALL	_putch
+0B022F C1                  A   435    	POP	BC
+                           A   436    ;   72		putch((crc & 0xFF00) >> 8);
+                           A   437    .LINE 72
+                           A   438    
+0B0230 DD07F2              A   439    	LD	BC,(IX+%FFFFFFF2)
+0B0233 DD7EF5              A   440    	LD	A,(IX+%FFFFFFF5)
+0B0236 2E08                A   441    	LD	L,%8
+0B0238 CD 52 0B 0B         A   442    	CALL	__lshru
+0B023C B7ED62              A   443    	UEXT	HL
+0B023F 69                  A   444    	LD	L,C
+0B0240 E5                  A   445    	PUSH	HL
+0B0241 CD FE 04 0B         A   446    	CALL	_putch
+0B0245 C1                  A   447    	POP	BC
+                           A   448    ;   73		putch((crc & 0xFF0000) >> 16);
+                           A   449    .LINE 73
+                           A   450    
+0B0246 DD07F2              A   451    	LD	BC,(IX+%FFFFFFF2)
+0B0249 DD7EF5              A   452    	LD	A,(IX+%FFFFFFF5)
+0B024C 2E10                A   453    	LD	L,%10
+0B024E CD 52 0B 0B         A   454    	CALL	__lshru
+0B0252 B7ED62              A   455    	UEXT	HL
+0B0255 69                  A   456    	LD	L,C
+0B0256 E5                  A   457    	PUSH	HL
+0B0257 CD FE 04 0B         A   458    	CALL	_putch
+0B025B C1                  A   459    	POP	BC
+                           A   460    ;   74		putch((crc & 0xFF000000) >> 24); //
+                           A   461    .LINE 74
+                           A   462    
+0B025C DD7EF5              A   463    	LD	A,(IX+%FFFFFFF5)
+0B025F B7ED62              A   464    	UEXT	HL
+0B0262 6F                  A   465    	LD	L,A
+0B0263 E5C1                A   466    	LD	BC,HL
+0B0265 B7ED62              A   467    	UEXT	HL
+0B0268 69                  A   468    	LD	L,C
+0B0269 E5                  A   469    	PUSH	HL
+0B026A DD77F1              A   470    	LD	(IX+%FFFFFFF1),A
+0B026D CD FE 04 0B         A   471    	CALL	_putch
+0B0271 DD7EF1              A   472    	LD	A,(IX+%FFFFFFF1)
+0B0274 C1                  A   473    	POP	BC
+                           A   474    ;   75		
+                           A   475    ;   76	
+                           A   476    ;   77		printf("ez80: %ld bytes\r\n",addr-s
+                           A   477    .LINE 77
+                           A   478    
+0B0275 01 E1 07 0B         A   479    	LD	BC,___print_uputch
+0B0279 ED43 29 0F 0B       A   480    	LD	(___print_xputch),BC
+0B027E 01 5C 0F 0B         A   481    	LD	BC,L__8
+0B0282 C5                  A   482    	PUSH	BC
+0B0283 DD77F1              A   483    	LD	(IX+%FFFFFFF1),A
+0B0286 CD 46 06 0B         A   484    	CALL	___print_sendstring
+0B028A DD7EF1              A   485    	LD	A,(IX+%FFFFFFF1)
+0B028D C1                  A   486    	POP	BC
+0B028E DD07FA              A   487    	LD	BC,(IX+%FFFFFFFA)
+0B0291 DD27FD              A   488    	LD	HL,(IX+%FFFFFFFD)
+0B0294 B7                  A   489    	OR	A,A
+0B0295 ED42                A   490    	SBC	HL,BC
+0B0297 E5C1                A   491    	LD	BC,HL
+0B0299 CD D3 0D 0B         A   492    	CALL	__itol
+0B029D C5D1                A   493    	LD	DE,BC
+0B029F 4F                  A   494    	LD	C,A
+0B02A0 0600                A   495    	LD	B,%0
+0B02A2 C5                  A   496    	PUSH	BC
+0B02A3 D5                  A   497    	PUSH	DE
+0B02A4 CD 7B 08 0B         A   498    	CALL	__u_ltoa
+0B02A8 C1                  A   499    	POP	BC
+0B02A9 C1                  A   500    	POP	BC
+0B02AA 01 63 0F 0B         A   501    	LD	BC,L__9
+0B02AE C5                  A   502    	PUSH	BC
+0B02AF CD 46 06 0B         A   503    	CALL	___print_sendstring
+0B02B3 C1                  A   504    	POP	BC
+                           A   505    ;   78		
+                           A   506    ;   79		if(file) 
+                           A   507    .LINE 79
+                           A   508    
+0B02B4 DD7EF9              A   509    	LD	A,(IX+%FFFFFFF9)
+0B02B7 B7                  A   510    	OR	A,A
+0B02B8 28 5B               A   511    	JR	Z,L_14
+                           A   512    ;   80		{
+                           A   513    ;   81			printf("Writing data to \"%s\"\
+                           A   514    .LINE 81
+                           A   515    
+0B02BA 01 E1 07 0B         A   516    	LD	BC,___print_uputch
+0B02BE ED43 29 0F 0B       A   517    	LD	(___print_xputch),BC
+0B02C3 01 6C 0F 0B         A   518    	LD	BC,L__11
+0B02C7 C5                  A   519    	PUSH	BC
+0B02C8 CD 46 06 0B         A   520    	CALL	___print_sendstring
+0B02CC C1                  A   521    	POP	BC
+0B02CD DD3109              A   522    	LD	IY,(IX+%9)
+0B02D0 ED2303              A   523    	LEA	HL,IY+%3
+0B02D3 ED07                A   524    	LD	BC,(HL)
+0B02D5 C5                  A   525    	PUSH	BC
+0B02D6 CD 46 06 0B         A   526    	CALL	___print_sendstring
+0B02DA C1                  A   527    	POP	BC
+0B02DB 01 7E 0F 0B         A   528    	LD	BC,L__12
+0B02DF C5                  A   529    	PUSH	BC
+0B02E0 CD 46 06 0B         A   530    	CALL	___print_sendstring
+0B02E4 C1                  A   531    	POP	BC
+                           A   532    ;   82			while(start != addr)
+                           A   533    .LINE 82
+                           A   534    
+0B02E5 18 18               A   535    	JR	L_10
+0B02E7                     A   536    L_11:
+                           A   537    ;   83			{
+                           A   538    ;   84				mos_fputc(file,*start);
+                           A   539    .LINE 84
+                           A   540    
+0B02E7 DD27FA              A   541    	LD	HL,(IX+%FFFFFFFA)
+0B02EA 4E                  A   542    	LD	C,(HL)
+0B02EB 0600                A   543    	LD	B,%0
+0B02ED C5                  A   544    	PUSH	BC
+0B02EE DD4EF9              A   545    	LD	C,(IX+%FFFFFFF9)
+0B02F1 C5                  A   546    	PUSH	BC
+0B02F2 CD A6 05 0B         A   547    	CALL	_mos_fputc
+0B02F6 C1                  A   548    	POP	BC
+0B02F7 C1                  A   549    	POP	BC
+                           A   550    ;   85				start++;
+                           A   551    .LINE 85
+                           A   552    
+0B02F8 DD07FA              A   553    	LD	BC,(IX+%FFFFFFFA)
+0B02FB 03                  A   554    	INC	BC
+0B02FC DD0FFA              A   555    	LD	(IX+%FFFFFFFA),BC
+                           A   556    ;   86			}
+0B02FF                     A   557    L_10:
+                           A   558    .LINE 86
+                           A   559    
+0B02FF DD07FD              A   560    	LD	BC,(IX+%FFFFFFFD)
+0B0302 DD27FA              A   561    	LD	HL,(IX+%FFFFFFFA)
+0B0305 B7                  A   562    	OR	A,A
+0B0306 ED42                A   563    	SBC	HL,BC
+0B0308 20 DD               A   564    	JR	NZ,L_11
+                           A   565    ;   87			mos_fclose(file);
+                           A   566    .LINE 87
+                           A   567    
+0B030A DD4EF9              A   568    	LD	C,(IX+%FFFFFFF9)
+0B030D 0600                A   569    	LD	B,%0
+0B030F C5                  A   570    	PUSH	BC
+0B0310 CD 7C 05 0B         A   571    	CALL	_mos_fclose
+0B0314 C1                  A   572    	POP	BC
+                           A   573    ;   88		}
+0B0315                     A   574    L_14:
+                           A   575    .LINE 88
+                           A   576    
+                           A   577    ;   89		return 0;
+                           A   578    .LINE 89
+                           A   579    
+0B0315 B7                  A   580    	OR	A,A
+0B0316 ED62                A   581    	SBC	HL,HL
+                           A   582    ;   90	}
+0B0318                     A   583    L_15:
+                           A   584    .LINE 90
+                           A   585    
+0B0318 DDF9                A   586    	LD	SP,IX
+0B031A DDE1                A   587    	POP	IX
+0B031C C9                  A   588    	RET	
+                           A   589    
+                           A   590    
+                           A   591    ;**************************** _main ***********
+                           A   592    ;Name                         Addr/Register   S
+                           A   593    ;_mos_fclose                         IMPORT  --
+                           A   594    ;_mos_fputc                          IMPORT  --
+                           A   595    ;__u_ltoa                            IMPORT  --
+                           A   596    ;_crc32                              IMPORT  --
+                           A   597    ;_receive_bytestream                 IMPORT  --
+                           A   598    ;_getTransparentByte                 IMPORT  --
+                           A   599    ;_putch                              IMPORT  --
+                           A   600    ;_mos_fopen                          IMPORT  --
+                           A   601    ;___print_sendstring                 IMPORT  --
+                           A   602    ;___print_xputch                     IMPORT    
+                           A   603    ;___print_uputch                     IMPORT  --
+                           A   604    ;crc                                  IX-14    
+                           A   605    ;addressvalue                         IX-10    
+                           A   606    ;file                                  IX-7    
+                           A   607    ;start                                 IX-6    
+                           A   608    ;addr                                  IX-3    
+                           A   609    ;argv                                  IX+9    
+                           A   610    ;argc                                  IX+6    
+                           A   611    
+                           A   612    
+                           A   613    ; Stack Frame Size: 27 (bytes)
+                           A   614    ;       Spill Code: 0 (instruction)
+                           A   615    
+                           A   616    
+                           A   617    .ENDFUNC "main",90,"_main"
+                           A   618    	SEGMENT STRSECT
+0B0F2C                     A   619    L__1:
+0B0F2C 55736167 653A2048   A   620    	DB	"Usage: HEXLOAD [filename]"
+0B0F34 45584C4F 4144205B 
+0B0F3C 66696C65 6E616D65 
+0B0F44 5D 
+0B0F45 0D0A00              A   621    	DB	13,10,0
+0B0F48                     A   622    L__4:
+0B0F48 4572726F 72206F70   A   623    	DB	"Error opening \""
+0B0F50 656E696E 672022 
+0B0F57 00                  A   624    	DB	0
+0B0F58                     A   625    L__5:
+0B0F58 22                  A   626    	DB	"\""
+0B0F59 0D0A00              A   627    	DB	13,10,0
+0B0F5C                     A   628    L__8:
+0B0F5C 657A3830 3A20       A   629    	DB	"ez80: "
+0B0F62 00                  A   630    	DB	0
+0B0F63                     A   631    L__9:
+0B0F63 20627974 6573       A   632    	DB	" bytes"
+0B0F69 0D0A00              A   633    	DB	13,10,0
+0B0F6C                     A   634    L__11:
+0B0F6C 57726974 696E6720   A   635    	DB	"Writing data to \""
+0B0F74 64617461 20746F20 
+0B0F7C 22 
+0B0F7D 00                  A   636    	DB	0
+0B0F7E                     A   637    L__12:
+0B0F7E 22                  A   638    	DB	"\""
+0B0F7F 0D0A00              A   639    	DB	13,10,0
+                           A   640    	SEGMENT CODE
+                           A   641    ;   91	
+                           A   642    ;   92	// Calculate a CRC32 over a block of me
+                           A   643    ;   93	// Parameters:
+                           A   644    ;   94	// - s: Pointer to a memory location
+                           A   645    ;   95	// - length: Size of memoryblock in byt
+                           A   646    ;   96	UINT32 crc32(const char *s, UINT32 leng
+                           A   647    ;   97	{
+0B031D                     A   648    _crc32:
+                           A   649    .DEFINE "_crc32"
+                           A   650    
+                           A   651    .VALUE _crc32
+                           A   652    
+                           A   653    .CLASS 2
+                           A   654    
+                           A   655    .TYPE 79
+                           A   656    
+                           A   657    .ENDEF
+                           A   658    
+                           A   659    .BEGFUNC "crc32",97,"_crc32"
+                           A   660    
+                           A   661    .LINE 97
+                           A   662    
+                           A   663    .DEFINE "s"
+                           A   664    
+                           A   665    .CLASS 65
+                           A   666    
+                           A   667    .VALUE 6
+                           A   668    
+                           A   669    .TYPE 194
+                           A   670    
+                           A   671    .ENDEF
+                           A   672    
+                           A   673    .DEFINE "length"
+                           A   674    
+                           A   675    .CLASS 65
+                           A   676    
+                           A   677    .VALUE 9
+                           A   678    
+                           A   679    .TYPE 15
+                           A   680    
+                           A   681    .ENDEF
+                           A   682    
+                           A   683    .DEFINE "i"
+                           A   684    
+                           A   685    .CLASS 65
+                           A   686    
+                           A   687    .VALUE -4
+                           A   688    
+                           A   689    .TYPE 15
+                           A   690    
+                           A   691    .ENDEF
+                           A   692    
+                           A   693    .DEFINE "j"
+                           A   694    
+                           A   695    .CLASS 65
+                           A   696    
+                           A   697    .VALUE -8
+                           A   698    
+                           A   699    .TYPE 15
+                           A   700    
+                           A   701    .ENDEF
+                           A   702    
+                           A   703    .DEFINE "ch"
+                           A   704    
+                           A   705    .CLASS 65
+                           A   706    
+                           A   707    .VALUE -9
+                           A   708    
+                           A   709    .TYPE 2
+                           A   710    
+                           A   711    .ENDEF
+                           A   712    
+                           A   713    .DEFINE "ch"
+                           A   714    
+                           A   715    .CLASS 65
+                           A   716    
+                           A   717    .VALUE -13
+                           A   718    
+                           A   719    .TYPE 15
+                           A   720    
+                           A   721    .ENDEF
+                           A   722    
+                           A   723    .DEFINE "b"
+                           A   724    
+                           A   725    .CLASS 65
+                           A   726    
+                           A   727    .VALUE -17
+                           A   728    
+                           A   729    .TYPE 15
+                           A   730    
+                           A   731    .ENDEF
+                           A   732    
+                           A   733    .DEFINE "t"
+                           A   734    
+                           A   735    .CLASS 65
+                           A   736    
+                           A   737    .VALUE -21
+                           A   738    
+                           A   739    .TYPE 15
+                           A   740    
+                           A   741    .ENDEF
+                           A   742    
+                           A   743    ;   98	  static UINT32 crc;
+                           A   744    .LINE 98
+                           A   745    
+                           A   746    .DEFINE "crc"
+                           A   747    
+                           A   748    .ALIAS "_0crc"
+                           A   749    
+                           A   750    .CLASS 83
+                           A   751    
+                           A   752    .VALUE _0crc
+                           A   753    
+                           A   754    .TYPE 15
+                           A   755    
+                           A   756    .ENDEF
+                           A   757    
+                           A   758    ;   99	  static UINT32 crc32_table[256];
+                           A   759    .LINE 99
+                           A   760    
+                           A   761    .DEFINE "crc32_table"
+                           A   762    
+                           A   763    .ALIAS "_1crc32_table"
+                           A   764    
+                           A   765    .CLASS 83
+                           A   766    
+                           A   767    .VALUE _1crc32_table
+                           A   768    
+                           A   769    .DIM 256
+                           A   770    
+                           A   771    .TYPE 111
+                           A   772    
+                           A   773    .ENDEF
+                           A   774    
+0B031D DDE5                A   775    	PUSH	IX
+0B031F DD210000 00         A   776    	LD	IX,0
+0B0324 DD39                A   777    	ADD	IX,SP
+0B0326 ED22EA              A   778    	LEA	HL,IX+%FFFFFFEA
+0B0329 F9                  A   779    	LD	SP,HL
+                           A   780    ;  100	  UINT32 i,ch,j,b,t; 
+                           A   781    ;  101	
+                           A   782    ;  102	  // init a crc32 lookup table, fastest
+                           A   783    ;  103	  for(i = 0; i < 256; i++)
+                           A   784    .LINE 103
+                           A   785    
+0B032A 01000000            A   786    	LD	BC,0
+0B032E AF                  A   787    	XOR	A,A
+0B032F DD0FFC              A   788    	LD	(IX+%FFFFFFFC),BC
+0B0332 DD77FF              A   789    	LD	(IX+%FFFFFFFF),A
+0B0335 C3 2C 04 0B         A   790    	JR	L_26
+0B0339                     A   791    L_24:
+                           A   792    ;  104	  {
+                           A   793    ;  105	    ch = i;
+                           A   794    .LINE 105
+                           A   795    
+0B0339 DD07FC              A   796    	LD	BC,(IX+%FFFFFFFC)
+0B033C DD7EFF              A   797    	LD	A,(IX+%FFFFFFFF)
+0B033F DD0FF3              A   798    	LD	(IX+%FFFFFFF3),BC
+0B0342 DD77F6              A   799    	LD	(IX+%FFFFFFF6),A
+                           A   800    ;  106	    crc = 0;
+                           A   801    .LINE 106
+                           A   802    
+0B0345 01000000            A   803    	LD	BC,0
+0B0349 AF                  A   804    	XOR	A,A
+0B034A ED43 82 0F 0B       A   805    	LD	(_0crc),BC
+0B034F 32 85 0F 0B         A   806    	LD	(_0crc+3),A
+                           A   807    ;  107	    for(j = 0; j < 8; j++)
+                           A   808    .LINE 107
+                           A   809    
+0B0353 AF                  A   810    	XOR	A,A
+0B0354 DD0FF8              A   811    	LD	(IX+%FFFFFFF8),BC
+0B0357 DD77FB              A   812    	LD	(IX+%FFFFFFFB),A
+0B035A C3 E4 03 0B         A   813    	JR	L_22
+0B035E                     A   814    L_20:
+                           A   815    ;  108	    {
+                           A   816    ;  109		  b=(ch^crc)&1;
+                           A   817    .LINE 109
+                           A   818    
+0B035E 2A 82 0F 0B         A   819    	LD	HL,(_0crc)
+0B0362 3A 85 0F 0B         A   820    	LD	A,(_0crc+3)
+0B0366 5F                  A   821    	LD	E,A
+0B0367 DD07F3              A   822    	LD	BC,(IX+%FFFFFFF3)
+0B036A DD7EF6              A   823    	LD	A,(IX+%FFFFFFF6)
+0B036D CD 80 0B 0B         A   824    	CALL	__lxor
+0B0371 E5C1                A   825    	LD	BC,HL
+0B0373 79                  A   826    	LD	A,C
+0B0374 E601                A   827    	AND	A,%1
+0B0376 B7ED62              A   828    	UEXT	HL
+0B0379 6F                  A   829    	LD	L,A
+0B037A DD2FEF              A   830    	LD	(IX+%FFFFFFEF),HL
+0B037D DD74F2              A   831    	LD	(IX+%FFFFFFF2),H
+                           A   832    ;  110		  crc>>=1;
+                           A   833    .LINE 110
+                           A   834    
+0B0380 ED4B 82 0F 0B       A   835    	LD	BC,(_0crc)
+0B0385 3A 85 0F 0B         A   836    	LD	A,(_0crc+3)
+0B0389 2E01                A   837    	LD	L,%1
+0B038B CD 52 0B 0B         A   838    	CALL	__lshru
+0B038F ED43 82 0F 0B       A   839    	LD	(_0crc),BC
+0B0394 32 85 0F 0B         A   840    	LD	(_0crc+3),A
+                           A   841    ;  111		  if(b) crc=crc^0xEDB88320;
+                           A   842    .LINE 111
+                           A   843    
+0B0398 DD27EF              A   844    	LD	HL,(IX+%FFFFFFEF)
+0B039B DD5EF2              A   845    	LD	E,(IX+%FFFFFFF2)
+0B039E CD 67 08 0B         A   846    	CALL	__lcmpzero
+0B03A2 28 1C               A   847    	JR	Z,L_19
+0B03A4 2A 82 0F 0B         A   848    	LD	HL,(_0crc)
+0B03A8 3A 85 0F 0B         A   849    	LD	A,(_0crc+3)
+0B03AC 5F                  A   850    	LD	E,A
+0B03AD 012083B8            A   851    	LD	BC,12092192
+0B03B1 3EED                A   852    	LD	A,%ED
+0B03B3 CD 80 0B 0B         A   853    	CALL	__lxor
+0B03B7 22 82 0F 0B         A   854    	LD	(_0crc),HL
+0B03BB 7B                  A   855    	LD	A,E
+0B03BC 32 85 0F 0B         A   856    	LD	(_0crc+3),A
+0B03C0                     A   857    L_19:
+                           A   858    ;  112		  ch>>=1;
+                           A   859    .LINE 112
+                           A   860    
+0B03C0 DD07F3              A   861    	LD	BC,(IX+%FFFFFFF3)
+0B03C3 DD7EF6              A   862    	LD	A,(IX+%FFFFFFF6)
+0B03C6 2E01                A   863    	LD	L,%1
+0B03C8 CD 52 0B 0B         A   864    	CALL	__lshru
+0B03CC DD0FF3              A   865    	LD	(IX+%FFFFFFF3),BC
+0B03CF DD77F6              A   866    	LD	(IX+%FFFFFFF6),A
+0B03D2 DD27F8              A   867    	LD	HL,(IX+%FFFFFFF8)
+0B03D5 DD5EFB              A   868    	LD	E,(IX+%FFFFFFFB)
+0B03D8 3E01                A   869    	LD	A,%1
+0B03DA CD B1 07 0B         A   870    	CALL	__ladd_b
+0B03DE DD2FF8              A   871    	LD	(IX+%FFFFFFF8),HL
+0B03E1 DD73FB              A   872    	LD	(IX+%FFFFFFFB),E
+                           A   873    ;  113	    }
+0B03E4                     A   874    L_22:
+                           A   875    .LINE 113
+                           A   876    
+0B03E4 DD27F8              A   877    	LD	HL,(IX+%FFFFFFF8)
+0B03E7 DD5EFB              A   878    	LD	E,(IX+%FFFFFFFB)
+0B03EA 01080000            A   879    	LD	BC,8
+0B03EE AF                  A   880    	XOR	A,A
+0B03EF CD 1D 0E 0B         A   881    	CALL	__lcmpu
+0B03F3 DA 5E 03 0B         A   882    	JR	C,L_20
+                           A   883    ;  114	    crc32_table[i] = crc;
+                           A   884    .LINE 114
+                           A   885    
+0B03F7 DD27FC              A   886    	LD	HL,(IX+%FFFFFFFC)
+0B03FA DD5EFF              A   887    	LD	E,(IX+%FFFFFFFF)
+0B03FD 01040000            A   888    	LD	BC,4
+0B0401 AF                  A   889    	XOR	A,A
+0B0402 CD 89 0E 0B         A   890    	CALL	__lmulu
+0B0406 01 86 0F 0B         A   891    	LD	BC,_1crc32_table
+0B040A 09                  A   892    	ADD	HL,BC
+0B040B ED4B 82 0F 0B       A   893    	LD	BC,(_0crc)
+0B0410 3A 85 0F 0B         A   894    	LD	A,(_0crc+3)
+0B0414 ED0F                A   895    	LD	(HL),BC
+0B0416 23                  A   896    	INC	HL
+0B0417 23                  A   897    	INC	HL
+0B0418 23                  A   898    	INC	HL
+0B0419 77                  A   899    	LD	(HL),A
+0B041A DD27FC              A   900    	LD	HL,(IX+%FFFFFFFC)
+0B041D DD5EFF              A   901    	LD	E,(IX+%FFFFFFFF)
+0B0420 3E01                A   902    	LD	A,%1
+0B0422 CD B1 07 0B         A   903    	CALL	__ladd_b
+0B0426 DD2FFC              A   904    	LD	(IX+%FFFFFFFC),HL
+0B0429 DD73FF              A   905    	LD	(IX+%FFFFFFFF),E
+                           A   906    ;  115	  }        
+0B042C                     A   907    L_26:
+                           A   908    .LINE 115
+                           A   909    
+0B042C DD27FC              A   910    	LD	HL,(IX+%FFFFFFFC)
+0B042F DD5EFF              A   911    	LD	E,(IX+%FFFFFFFF)
+0B0432 01000100            A   912    	LD	BC,256
+0B0436 AF                  A   913    	XOR	A,A
+0B0437 CD 1D 0E 0B         A   914    	CALL	__lcmpu
+0B043B DA 39 03 0B         A   915    	JR	C,L_24
+                           A   916    ;  116	
+                           A   917    ;  117	  // calculate the crc using the table
+                           A   918    ;  118	  crc = 0xFFFFFFFF;
+                           A   919    .LINE 118
+                           A   920    
+0B043F 01FFFFFF            A   921    	LD	BC,16777215
+0B0443 3EFF                A   922    	LD	A,%FF
+0B0445 ED43 82 0F 0B       A   923    	LD	(_0crc),BC
+0B044A 32 85 0F 0B         A   924    	LD	(_0crc+3),A
+                           A   925    ;  119	  for(i=0;i<length;i++)
+                           A   926    .LINE 119
+                           A   927    
+0B044E 01000000            A   928    	LD	BC,0
+0B0452 AF                  A   929    	XOR	A,A
+0B0453 DD0FFC              A   930    	LD	(IX+%FFFFFFFC),BC
+0B0456 DD77FF              A   931    	LD	(IX+%FFFFFFFF),A
+0B0459 18 7D               A   932    	JR	L_31
+0B045B                     A   933    L_29:
+                           A   934    ;  120	  {
+                           A   935    ;  121	    char ch=s[i];
+                           A   936    .LINE 121
+                           A   937    
+0B045B DD07FC              A   938    	LD	BC,(IX+%FFFFFFFC)
+0B045E DD2706              A   939    	LD	HL,(IX+%6)
+0B0461 09                  A   940    	ADD	HL,BC
+0B0462 7E                  A   941    	LD	A,(HL)
+0B0463 DD77F7              A   942    	LD	(IX+%FFFFFFF7),A
+                           A   943    ;  122	    t=(ch^crc)&0xFF;
+                           A   944    .LINE 122
+                           A   945    
+0B0466 17ED62              A   946    	SEXT	HL
+0B0469 DD6EF7              A   947    	LD	L,(IX+%FFFFFFF7)
+0B046C E5C1                A   948    	LD	BC,HL
+0B046E DD74EA              A   949    	LD	(IX+%FFFFFFEA),H
+0B0471 2A 82 0F 0B         A   950    	LD	HL,(_0crc)
+0B0475 3A 85 0F 0B         A   951    	LD	A,(_0crc+3)
+0B0479 5F                  A   952    	LD	E,A
+0B047A DD7EEA              A   953    	LD	A,(IX+%FFFFFFEA)
+0B047D CD 80 0B 0B         A   954    	CALL	__lxor
+0B0481 E5C1                A   955    	LD	BC,HL
+0B0483 B7ED62              A   956    	UEXT	HL
+0B0486 69                  A   957    	LD	L,C
+0B0487 DD2FEB              A   958    	LD	(IX+%FFFFFFEB),HL
+0B048A DD74EE              A   959    	LD	(IX+%FFFFFFEE),H
+                           A   960    ;  123	    crc=(crc>>8)^crc32_table[t];
+                           A   961    .LINE 123
+                           A   962    
+0B048D DD27EB              A   963    	LD	HL,(IX+%FFFFFFEB)
+0B0490 DD5EEE              A   964    	LD	E,(IX+%FFFFFFEE)
+0B0493 01040000            A   965    	LD	BC,4
+0B0497 AF                  A   966    	XOR	A,A
+0B0498 CD 89 0E 0B         A   967    	CALL	__lmulu
+0B049C 01 86 0F 0B         A   968    	LD	BC,_1crc32_table
+0B04A0 09                  A   969    	ADD	HL,BC
+0B04A1 E5FDE1              A   970    	LD	IY,HL
+0B04A4 ED4B 82 0F 0B       A   971    	LD	BC,(_0crc)
+0B04A9 3A 85 0F 0B         A   972    	LD	A,(_0crc+3)
+0B04AD 2E08                A   973    	LD	L,%8
+0B04AF CD 52 0B 0B         A   974    	CALL	__lshru
+0B04B3 FD2700              A   975    	LD	HL,(IY)
+0B04B6 FD5E03              A   976    	LD	E,(IY+%3)
+0B04B9 CD 80 0B 0B         A   977    	CALL	__lxor
+0B04BD 22 82 0F 0B         A   978    	LD	(_0crc),HL
+0B04C1 7B                  A   979    	LD	A,E
+0B04C2 32 85 0F 0B         A   980    	LD	(_0crc+3),A
+0B04C6 DD27FC              A   981    	LD	HL,(IX+%FFFFFFFC)
+0B04C9 DD5EFF              A   982    	LD	E,(IX+%FFFFFFFF)
+0B04CC 3E01                A   983    	LD	A,%1
+0B04CE CD B1 07 0B         A   984    	CALL	__ladd_b
+0B04D2 DD2FFC              A   985    	LD	(IX+%FFFFFFFC),HL
+0B04D5 DD73FF              A   986    	LD	(IX+%FFFFFFFF),E
+                           A   987    ;  124	  }
+0B04D8                     A   988    L_31:
+                           A   989    .LINE 124
+                           A   990    
+0B04D8 DD27FC              A   991    	LD	HL,(IX+%FFFFFFFC)
+0B04DB DD5EFF              A   992    	LD	E,(IX+%FFFFFFFF)
+0B04DE DD0709              A   993    	LD	BC,(IX+%9)
+0B04E1 DD7E0C              A   994    	LD	A,(IX+%C)
+0B04E4 CD 1D 0E 0B         A   995    	CALL	__lcmpu
+0B04E8 DA 5B 04 0B         A   996    	JR	C,L_29
+                           A   997    ;  125	
+                           A   998    ;  126	  return ~crc;
+                           A   999    .LINE 126
+                           A  1000    
+0B04EC 2A 82 0F 0B         A  1001    	LD	HL,(_0crc)
+0B04F0 3A 85 0F 0B         A  1002    	LD	A,(_0crc+3)
+0B04F4 5F                  A  1003    	LD	E,A
+0B04F5 CD 63 0E 0B         A  1004    	CALL	__lnot
+                           A  1005    ;  127	}
+                           A  1006    .LINE 127
+                           A  1007    
+0B04F9 DDF9                A  1008    	LD	SP,IX
+0B04FB DDE1                A  1009    	POP	IX
+0B04FD C9                  A  1010    	RET	
+                           A  1011    
+                           A  1012    
+                           A  1013    ;**************************** _crc32 **********
+                           A  1014    ;Name                         Addr/Register   S
+                           A  1015    ;_1crc32_table                       STATIC   1
+                           A  1016    ;_0crc                               STATIC    
+                           A  1017    ;t                                    IX-21    
+                           A  1018    ;b                                    IX-17    
+                           A  1019    ;ch                                   IX-13    
+                           A  1020    ;ch                                    IX-9    
+                           A  1021    ;j                                     IX-8    
+                           A  1022    ;i                                     IX-4    
+                           A  1023    ;length                                IX+9    
+                           A  1024    ;s                                     IX+6    
+                           A  1025    
+                           A  1026    
+                           A  1027    ; Stack Frame Size: 37 (bytes)
+                           A  1028    ;       Spill Code: 0 (instruction)
+                           A  1029    
+                           A  1030    
+                           A  1031    .ENDFUNC "crc32",127,"_crc32"
+                           A  1032    	SEGMENT BSS
+0B0F82                     A  1033    _0crc:
+0B0F82                     A  1034    	DS	4*1
+0B0F86                     A  1035    _1crc32_table:
+0B0F86                     A  1036    	DS	1024
+                           A  1037    	XREF _getTransparentByte:ROM
+                           A  1038    	XREF _receive_bytestream:ROM
+                           A  1039    	XREF _mos_fputc:ROM
+                           A  1040    	XREF _mos_fclose:ROM
+                           A  1041    	XREF _mos_fopen:ROM
+                           A  1042    	XREF _putch:ROM
+                           A  1043    	XREF __u_ltoa:ROM
+                           A  1044    	XREF ___print_sendstring:ROM
+                           A  1045    	XREF ___print_xputch:ROM
+                           A  1046    	XREF ___print_uputch:ROM
+                           A  1047    	XREF __lcmpu:ROM
+                           A  1048    	XREF __lmulu:ROM
+                           A  1049    	XREF __lnot:ROM
+                           A  1050    	XREF __ior:ROM
+                           A  1051    	XREF __lxor:ROM
+                           A  1052    	XREF __lshru:ROM
+                           A  1053    	XREF __itol:ROM
+                           A  1054    	XREF __setflag:ROM
+                           A  1055    	XREF __icmpzero:ROM
+                           A  1056    	XREF __lcmpzero:ROM
+                           A  1057    	XREF __ladd_b:ROM
+                           A  1058    	XREF __ishl_b:ROM
+                           A  1059    	XDEF _crc32
+                           A  1060    	XDEF _main
+                           A  1061    	END
+
+
+Errors: 0
+Warnings: 0
+Lines Assembled: 1062

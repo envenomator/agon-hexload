@@ -1,0 +1,240 @@
+Zilog eZ80 Macro Assembler Version 4.3 (19073001) RELISTED06-Jan-23     16:18:23     page:   1
+
+
+PC     Object              I  Line    Source 
+                           A     1    ;
+                           A     2    ; Title:		AGON MOS - MOS hexload assembly
+                           A     3    ; Author:		Jeroen Venema
+                           A     4    ; Created:		23/10/2022
+                           A     5    ; Last Updated:	26/11/2022
+                           A     6    ;
+                           A     7    ; Modinfo:
+                           A     8    ; 23/10/2022:	Initial assembly code
+                           A     9    ; 24/10/2022:	0x00 escape code now contained 
+                           A    10    ; 26/11/2022:   Adapted as loadable command
+                           A    11    
+                           B     0    	.include "mos_api.inc"
+                           B     1    ;
+                           B     2    ; Title:	AGON MOS - API for user projects
+                           B     3    ; Author:	Dean Belfield
+                           B     4    ; Created:	03/08/2022
+                           B     5    ; Last Updated:	13/10/2022
+                           B     6    ;
+                           B     7    ; Modinfo:
+                           B     8    ; 05/08/2022:	Added mos_feof
+                           B     9    ; 09/08/2022:	Added system variables: cursorX
+                           B    10    ; 18/08/2022:	Added system variables: scrchar
+                           B    11    ; 05/09/2022:	Added mos_ren, vdp_pflag_mode
+                           B    12    ; 24/09/2022:	Added mos_getError, mos_mkdir
+                           B    13    ; 13/10/2022:	Added mos_oscli
+                           B    14    
+                           B    15    ; MOS high level functions
+                           B    16    ;
+       00000000            B    17    mos_getkey:		EQU	00h
+       00000001            B    18    mos_load:		EQU	01h
+       00000002            B    19    mos_save:		EQU	02h
+       00000003            B    20    mos_cd:			EQU	03h
+       00000004            B    21    mos_dir:		EQU	04h
+       00000005            B    22    mos_del:		EQU	05h
+       00000006            B    23    mos_ren:		EQU	06h
+       00000007            B    24    mos_mkdir:		EQU	07h
+       00000008            B    25    mos_sysvars:		EQU	08h
+       00000009            B    26    mos_editline:		EQU	09h
+       0000000A            B    27    mos_fopen:		EQU	0Ah
+       0000000B            B    28    mos_fclose:		EQU	0Bh
+       0000000C            B    29    mos_fgetc:		EQU	0Ch
+       0000000D            B    30    mos_fputc:		EQU	0Dh
+       0000000E            B    31    mos_feof:		EQU	0Eh
+       0000000F            B    32    mos_getError:		EQU	0Fh
+       00000010            B    33    mos_oscli:		EQU	10h
+                           B    34    
+                           B    35    ; FatFS file access functions
+                           B    36    ;
+       00000080            B    37    ffs_fopen:		EQU	80h
+       00000081            B    38    ffs_fclose:		EQU	81h
+       00000082            B    39    ffs_fread:		EQU	82h
+       00000083            B    40    ffs_fwrite:		EQU	83h
+       00000084            B    41    ffs_fseek:		EQU	84h
+       00000085            B    42    ffs_ftruncate:		EQU	85h
+       00000086            B    43    ffs_fsync:		EQU	86h
+       00000087            B    44    ffs_fforward:		EQU	87h
+       00000088            B    45    ffs_fexpand:		EQU	88h
+       00000089            B    46    ffs_fgets:		EQU	89h
+       0000008A            B    47    ffs_fputc:		EQU	8Ah
+       0000008B            B    48    ffs_fputs:		EQU	8Bh
+       0000008C            B    49    ffs_fprintf:		EQU	8Ch
+       0000008D            B    50    ffs_ftell:		EQU	8Dh
+       0000008E            B    51    ffs_feof:		EQU	8Eh
+       0000008F            B    52    ffs_fsize:		EQU	8Fh
+       00000090            B    53    ffs_ferror:		EQU	90h
+                           B    54    
+                           B    55    ; FatFS directory access functions
+                           B    56    ;
+       00000091            B    57    ffs_dopen:		EQU	91h
+       00000092            B    58    ffs_dclose:		EQU	92h
+       00000093            B    59    ffs_dread:		EQU	93h
+       00000094            B    60    ffs_dfindfirst:		EQU	94h
+       00000095            B    61    ffs_dfindnext:		EQU	95h
+                           B    62    
+                           B    63    ; FatFS file and directory management functions
+                           B    64    ;
+       00000096            B    65    ffs_stat:		EQU	96h
+       00000097            B    66    ffs_unlink:		EQU	97h
+       00000098            B    67    ffs_rename:		EQU	98h
+       00000099            B    68    ffs_chmod:		EQU	99h
+       0000009A            B    69    ffs_utime:		EQU	9Ah
+       0000009B            B    70    ffs_mkdir:		EQU	9Bh
+       0000009C            B    71    ffs_chdir:		EQU	9Ch
+       0000009D            B    72    ffs_chdrive:		EQU	9Dh
+       0000009E            B    73    ffs_getcwd:		EQU	9Eh
+                           B    74    
+                           B    75    ; FatFS volume management and system configurat
+                           B    76    ;
+       0000009F            B    77    ffs_mount:		EQU	9Fh
+       000000A0            B    78    ffs_mkfs:		EQU	A0h
+       000000A1            B    79    ffs_fdisk		EQU	A1h
+       000000A2            B    80    ffs_getfree:		EQU	A2h
+       000000A3            B    81    ffs_getlabel:		EQU	A3h
+       000000A4            B    82    ffs_setlabel:		EQU	A4h
+       000000A5            B    83    ffs_setcp:		EQU	A5h
+                           B    84    	
+                           B    85    ; File access modes
+                           B    86    ;
+       00000001            B    87    fa_read:		EQU	01h
+       00000002            B    88    fa_write:		EQU	02h
+       00000000            B    89    fa_open_existing:	EQU	00h
+       00000004            B    90    fa_create_new:		EQU	04h
+       00000008            B    91    fa_create_always:	EQU	08h
+       00000010            B    92    fa_open_always:		EQU	10h
+       00000030            B    93    fa_open_append:		EQU	30h
+                           B    94    	
+                           B    95    ; System variable indexes for api_sysvars
+                           B    96    ; Index into _sysvars in globals.asm
+                           B    97    ;
+       00000000            B    98    sysvar_time:		EQU	00h
+       00000004            B    99    sysvar_vpd_pflags:	EQU	04h
+       00000005            B   100    sysvar_keycode:		EQU	05h
+       00000006            B   101    sysvar_keymods:		EQU	06h
+       00000007            B   102    sysvar_cursorX:		EQU	07h
+       00000008            B   103    sysvar_cursorY:		EQU	08h
+       00000009            B   104    sysvar_scrchar:		EQU	09h
+       0000000A            B   105    sysvar_scrpixel:	EQU	0Ah
+       0000000D            B   106    sysvar_audioChannel:	EQU	0Dh
+       0000000E            B   107    syscar_audioSuccess:	EQU	0Eh
+                           B   108    	
+                           B   109    ; Flags for the VPD protocol
+                           B   110    ;
+       00000001            B   111    vdp_pflag_cursor:	EQU		00000001b
+       00000002            B   112    vdp_pflag_scrchar:	EQU		00000010b
+       00000004            B   113    vdp_pflag_point:	EQU		00000100b
+       00000008            B   114    vdp_pflag_audio:	EQU		00001000b
+       00000010            B   115    vdp_pflag_mode:		EQU		00010000b
+                           B   116    	
+                           B   117    ;
+                           B   118    ; Macro for calling the API
+                           B   119    ; Parameters:
+                           B   120    ; - function: One of the function numbers liste
+                           B   121    ;
+                           B   122    MOSCALL:		MACRO	function
+                           B   123    			LD	A, function
+                           B   124    			RST.LIS	08h
+                           B   125    			ENDMACRO 	
+                           A    13    			
+                           A    14    	SEGMENT CODE
+                           A    15    	.ASSUME	ADL = 1
+                           A    16    			
+                           A    17    	XDEF	_receive_bytestream
+                           A    18    	XDEF	_getTransparentByte
+                           A    19    	
+                           A    20    ; receive a single keycode/keymods packet from 
+                           A    21    ; keycode can't be 0x00 - so this is escaped wi
+                           A    22    ; return transparent byte in a
+0B05D3                     A    23    _getTransparentByte:
+0B05D3 FDE5                A    24    	push iy
+0B05D5 DDE5                A    25    	push ix
+                           A    26    
+0B05D7 CD E4 05 0B         A    27    	call getSysvars
+0B05DB CD E9 05 0B         A    28    	call getTransparentByte
+                           A    29    	
+0B05DF DDE1                A    30    	pop ix
+0B05E1 FDE1                A    31    	pop iy
+0B05E3 C9                  A    32    	ret
+                           A    33    
+                           A    34    ; get pointer to sysvars in ixu
+0B05E4                     A    35    getSysvars:
+0B05E4 3E08                A    36    	ld a, mos_sysvars		; MOS call for mos_
+0B05E6 5BCF                A    37    	rst.lil 08h				; returns pointer t
+0B05E8 C9                  A    38    	ret
+                           A    39    
+                           A    40    ; call here when ixu has been set previously fo
+0B05E9                     A    41    getTransparentByte:
+0B05E9 DD7E05              A    42    	ld a, (ix+sysvar_keycode)
+0B05EC B7                  A    43    	or a
+0B05ED 28 FA               A    44    	jr z, getTransparentByte
+0B05EF 4F                  A    45    	ld c,a
+0B05F0 AF                  A    46    	xor a				; acknowledge receipt o
+0B05F1 DD7705              A    47    	ld (ix+sysvar_keycode),a
+0B05F4 79                  A    48    	ld a,c
+                           A    49    
+0B05F5 FE01                A    50    	cp a,01h			; check for escape code
+0B05F7 20 0A               A    51    	jr nz, getbyte_done ; no escape code receiv
+0B05F9 4F                  A    52    	ld c,a				; save received byte
+0B05FA DD7E06              A    53    	ld a,(ix+sysvar_keymods)		; is byte e
+0B05FD B7                  A    54    	or a
+0B05FE 28 02               A    55    	jr z, getbyte_nesc  ; not escaped: normal t
+0B0600 0E00                A    56    	ld c,0				; escaped 0x01 => 0x00 
+0B0602                     A    57    getbyte_nesc:
+0B0602 79                  A    58    	ld a,c				; restore to a
+0B0603                     A    59    getbyte_done:
+0B0603 C9                  A    60    	ret
+                           A    61    
+                           A    62    ; argument: 24-bit address pointer
+                           A    63    ; accepts n>=0 number of blocks from the VDU
+                           A    64    ; each block is received as follows:
+                           A    65    ; 0-255 (byte) number of bytes in this block - 
+                           A    66    ; number of packets from VDU, containing both k
+                           A    67    
+0B0604                     A    68    _receive_bytestream:
+0B0604 FDE5                A    69    	push iy
+0B0606 FD210000 00         A    70    	ld iy,0
+0B060B FD39                A    71    	add iy, sp
+                           A    72    	
+0B060D FD1706              A    73    	ld de, (iy+6)			; de == 24-bit addr
+0B0610 21000000            A    74    	ld hl, 0				; de will contain t
+                           A    75    	
+0B0614 DDE5                A    76    	push ix					; safeguard main ix
+                           A    77    	
+0B0616 CD E4 05 0B         A    78    	call getSysvars			; returns pointer t
+0B061A                     A    79    blockloop:
+0B061A CD E9 05 0B         A    80    	call getTransparentByte	; ask for number of
+0B061E B7                  A    81    	or a
+0B061F 28 0E               A    82    	jr z, rbdone
+                           A    83    
+0B0621 47                  A    84    	ld b,a					; loop counter
+0B0622                     A    85    $$:
+0B0622 CD E9 05 0B         A    86    	call getTransparentByte	; receive each byte
+0B0626 12                  A    87    	ld (de),a				; store byte in mem
+0B0627 13                  A    88    	inc de					; next address
+0B0628 23                  A    89    	inc hl					; increase total nu
+0B0629 10 F7               A    90    	djnz $B					; next byte
+0B062B C3 1A 06 0B         A    91    	jp blockloop
+                           A    92    	
+0B062F                     A    93    rbdone:
+0B062F DDE1                A    94    	pop ix
+0B0631 FDF9                A    95    	ld sp,iy
+0B0633 FDE1                A    96    	pop iy
+0B0635 C9                  A    97    	ret				; returns hl with number of
+                           A    98    	
+                           A    99    	
+                           A   100    	SEGMENT DATA
+                           A   101    
+                           A   102    ; Storage for pointer to sysvars
+                           A   103    
+0B0F26                     A   104    sysvarptr:		DS 3
+                           A   105    			
+                           A   106    	END
+
+
+Errors: 0
+Warnings: 0
+Lines Assembled: 232

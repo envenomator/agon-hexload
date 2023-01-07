@@ -10,6 +10,8 @@
 <file filter-key="">.\uart.c</file>
 <file filter-key="">.\serial.asm</file>
 <file filter-key="">.\hxload.asm</file>
+<file filter-key="">.\crc32.c</file>
+<file filter-key="">.\mos_bytestream.asm</file>
 </files>
 
 <!-- configuration information -->

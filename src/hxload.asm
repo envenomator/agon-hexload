@@ -13,8 +13,8 @@ _hxload:
 			
 			XOR		A,A
 			LD		(hexload_error),A		; clear error counter
-			LD		A,LOAD_HLU_DEFAULT		; default upper byte load address 0x040000 in HLU
-			LD		(hexload_address+2),A	; in case record 04 goes missing
+			;LD		A,LOAD_HLU_DEFAULT		; default upper byte load address 0x040000 in HLU
+			;LD		(hexload_address+2),A	; in case record 04 goes missing
 hxline:
 			CALL	_uart1_getch
 			CP		':'

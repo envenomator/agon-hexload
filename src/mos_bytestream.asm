@@ -14,7 +14,7 @@
 	SEGMENT CODE
 	.ASSUME	ADL = 1
 			
-	XDEF	_receive_bytestream
+	XDEF	_hxload_vdp
 	XDEF	_getTransparentByte
 	
 ; receive a single keycode/keymods packet from the VDU
@@ -59,48 +59,52 @@ getbyte_nesc:
 getbyte_done:
 	ret
 
-; argument: 24-bit address pointer
-; accepts n>=0 number of blocks from the VDU
-; each block is received as follows:
-; 0-255 (byte) number of bytes in this block - if this is zero, terminate procedure
-; number of packets from VDU, containing both keycode/keymods.
+; hxload_vdp received records from the VDP
+; each record has
+; HLU - byte - high byte address
+; H   - byte - medium byte address
+; L   - byte - low byte address
+; N   - byte - number of databytes to read
+; 0 - N-1 - bytes of data
+; 
+; Last record sent has N == 0, but will send address bytes, no data bytes
 
-_receive_bytestream:
-	push iy
-	ld iy,0
-	add iy, sp
-	
-	ld de, (iy+6)			; de == 24-bit address pointer
-	ld hl, 0				; de will contain total number of bytes received
-	
-	push ix					; safeguard main ixu
-	
-	call getSysvars			; returns pointer to sysvars in ixu
+_hxload_vdp:
+	push	de
+	push	bc
+	push	ix						; safeguard main ixu	
+	call	getSysvars				; returns pointer to sysvars in ixu
 blockloop:
-	call getTransparentByte	; ask for number of bytes to receive
-	or a
-	jr z, rbdone
+	call	getTransparentByte		; ask for byte HLU
+	ld		(hexload_address+2),a	; store
+	call	getTransparentByte		; ask for byte H
+	ld		(hexload_address+1),a	; store
+	call	getTransparentByte		; ask for byte L
+	ld		(hexload_address),a		; store
+	call	getTransparentByte		; ask for number of bytes to receive
+	or		a
+	jr		z, rbdone
 
-	ld b,a					; loop counter
+	ld		hl, hexload_address
+	ld		hl, (hl)				; load the (assembled) pointer from memory
+	ld		b,a						; loop counter
 $$:
-	call getTransparentByte	; receive each byte in a
-	ld (de),a				; store byte in memory
-	inc de					; next address
-	inc hl					; increase total number of bytes read
-	djnz $B					; next byte
-	jp blockloop
+	call	getTransparentByte		; receive each byte in a
+	ld		(hl),a					; store byte in memory
+	inc		hl						; next address
+	djnz	$B						; next byte
+	jp		blockloop
 	
 rbdone:
 	pop ix
-	ld sp,iy
-	pop iy
-	ret				; returns hl with number of bytes read
+	pop bc
+	pop de
+	ret
 	
 	
 	SEGMENT DATA
 
 ; Storage for pointer to sysvars
 
-sysvarptr:		DS 3
-			
-	END
+sysvarptr:			DS 3
+hexload_address		DEFB	3	; 24bit address

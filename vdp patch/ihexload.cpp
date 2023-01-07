@@ -77,346 +77,96 @@ uint32_t crc32(const char *s, uint32_t n, bool firstrun)
 
   return ~crc;
 }
-//
-// ihex callbackup function
-bool ihex_data_read (struct ihex_state *ihex, ihex_record_type_t type, bool checksum_error)
+
+uint8_t get_serialnibble(void)
 {
-    unsigned long address_delta;
-    char o[128];
-    uint8_t count,xsb;
-    
-    if (type == IHEX_DATA_RECORD) {
+  uint8_t c,val = 0;
 
-      // Mark errors
-      ihex->checksum_error |= checksum_error;
-      ihex->length_error |= (ihex->length < ihex->line_length);
-
-      // first write?
-      if(ihex->next_address == 0)
-      {
-        ihex->next_address = ihex->address; // start first record at first given address, so everything becomes relative
-        printFmt("Start address 0x%lx\r\n",ihex->address);
-        // send 24bit start address
-        xsb = (uint8_t)(ihex->address & 0xFF); // LSB
-        send_byte(xsb);
-        xsb = (uint8_t)((ihex->address & 0xFF00) >> 8);
-        send_byte(xsb);
-        xsb = (uint8_t)((ihex->address & 0xFF0000) >> 16); // MSB
-        send_byte(xsb);
-      }
-
-      // first check if this record aligns with the previous, or if we do need to pad 0x00's between them
-      address_delta = ihex->address - ihex->next_address;
-      if(address_delta)
-      {
-        //printFmt("Addr 0x%lx len 0x%04x padding\r\n", ihex->next_address, address_delta);
-        send_byte(address_delta);
-        char zero = 0; // need this as a source for crc32
-        while(address_delta) // send padding bytes
-        {
-          send_byte(0);
-          crc32(&zero,1,false);
-          ihex->total += 1;
-          address_delta--;
-        }        
-      }
-
-      // prepare anticipated address for next record
-      ihex->next_address = ihex->address + ihex->length;
-
-      //printFmt("Addr 0x%lx len 0x%02x\r\n",ihex->address, ihex->length);
-      if(!checksum_error)
-          printFmt(".");
-        else
-          printFmt("X");
-      
-      //
-      // now start sending the actual bytes in this record
-      //
-      ihex->total += ihex->length;
-
-      // start receiving ihex->length bytes
-      send_byte(ihex->length);
-      for(count = 0; count < ihex->length; count++) send_byte(ihex->data[count]);
-      // calculate crc for this record
-      crc32((const char *)ihex->data, ihex->length, false); // update
-    }
-    return true;
+  c = toupper(Serial.read());
+  
+  if((c >= '0') && c <='9') val = c - '0';
+  else val = c - 'A' + 10;
+  // illegal characters will be dealt with by checksum later
+  return val;
 }
 
-// Ihex engine
+uint8_t get_serialbyte(void)
+{
+  uint8_t val = 0;
+
+  val = get_serialnibble() << 4;
+  val |= get_serialnibble();
+}
+
+void send_address(uint8_t u, uint8_t h, uint8_t l)
+{
+  send_byte(u);
+  send_byte(h);
+  send_byte(l);
+}
+
+// NEW Ihex engine
 //
 void vdu_sys_hexload(void)
 {
+  uint8_t u,h,l;
+  uint8_t count;
+  uint8_t record;
+  uint8_t checksum;
+  uint8_t data[256];
+  uint8_t *dataptr;
+  uint8_t c = 0;
+  bool done = false;
+
   uint32_t crc_sent,crc_rec;
-  struct ihex_state ihex;
-  char o[128];
-  unsigned int count = 0;
-  bool serialdone = false;
-  bool error = false;
-  char buffer[256];
-  char *ptr;
-  uint8_t c;
-  uint8_t bytecount,recordtype;
-  uint8_t state = 0;
-
-  ihex_begin_read(&ihex);
   crc32(0,0,true); // init crc table
-  recordtype = 0; // initial state
-  
-  printFmt("Receiving Intel HEX records\r\n");
-  ptr = buffer;
-  while(!serialdone)
+
+  if(Serial.available())
   {
-    if(Serial.available())
+    while(!done)
     {
-      c = Serial.read();
-      switch(state)
+      do // hunt for start of record
       {
-        case 0: // nothing or end-of-line received previously
-          if(c == ':') state = 1;
-          break;
-        case 1: // start code received previously
-          bytecount = (c - '0') << 4; // high nibble
-          state = 2;
-          break;
-        case 2: // first uint8_t of bytecount received previously
-          bytecount = bytecount | (c - '0'); // low nibble  
-          state = 3;
-          break;
-        case 3 ... 6:
-          state++; // next - skip 4 nibbles of address
-          break;
-        case 7:
-          recordtype = (c - '0') << 4; // high nibble
-          state = 8;
-          break;
-        case 8:
-          recordtype = recordtype | (c - '0'); // low nibble
-          state = 9;
-          break;
-        default:
-          if(c == ':')
-          {
-            serialdone = (recordtype == 1);
-            state = 1;
-          }
-          else
-          {
-            if((c == 0x0D) || (c == 0x0A))
-            {
-              serialdone = (recordtype == 1);
-              state = 0;
-            }
-            else state++;             
-          }
-        break;
-      }
-      *ptr = c; // store in buffer
-      ptr++;
-      count++;      
+        c = Serial.read();
+      } while (c != ':');
+      count = get_serialbyte(); // number of bytes in this record
+      h = get_serialbyte();     // middle byte of address
+      l = get_serialbyte();     // lower byte of address 
+      record = get_serialbyte();// record type
 
-      if(count == 128) // Process once per this number of characters received
+      checksum = 0;             // init checksum
+      switch(record)
       {
-        ihex_read_bytes(&ihex, buffer, count);
-        count = 0;
-        ptr = buffer;
+        case 0: // data record
+          send_address(u,h,l);
+          send_byte(count);
+          dataptr = data;
+          while(count--)
+          {
+            *dataptr = get_serialbyte();
+            send_byte(*dataptr);
+            checksum += *dataptr;   // update checksum
+            dataptr++;
+          }
+          checksum += get_serialbyte(); // finalize checksum with actual checksum byte in record
+          break;
+        case 1: // end of file record
+          send_address(0,0,0);
+          send_byte(0);
+          done = true;
+          break;
+        case 4: // extended lineair address record
+          checksum += get_serialbyte();   // ignore top byte of 32bit address, only using 24bit
+          u = get_serialbyte();
+          checksum += u;
+          send_address(u,0,0);
+          checksum += get_serialbyte(); // finalize checksum with actual checksum byte in record
+          break;
+        default:// ignore all else for now
+          break;
       }
+      if(checksum) printFmt("X");
+      else printFmt(".");     
     }
-  }
-
-  ihex_read_bytes(&ihex, buffer, count); // read remaining count characters
-  ihex_end_read(&ihex); // flush remaining processed buffer bytes to ez80
-  printFmt("\r\n");
-  send_byte(0x0); // signal termination of transmission to ez80
-
-  if(ihex.checksum_error || ihex.length_error)
-  {
-    if(ihex.checksum_error) printFmt("Input checksum error(s)\r\n");
-    if(ihex.length_error)   printFmt("Input line(s) too long\r\n");
-
-    // discard CPU CRC32 results
-    readByte();
-    readByte();
-    readByte();
-    readByte();    
-  }
-  else
-  {
-    printFmt("%d bytes\r\n", ihex.total);
-
-    // calculate crc and match receiving crc
-    crc_sent = crc32(0,0,false);
-    crc_rec = readByte(); // LSB
-    crc_rec |= (readByte() << 8);
-    crc_rec |= (readByte() << 16);
-    crc_rec |= (readByte() << 24);
-    if(crc_sent == crc_rec) printFmt("CRC32 OK\r\n");
-    else printFmt("CRC32 ERROR\r\n");
-  }
-}
-
-#define IHEX_START ':'
-#define ADDRESS_HIGH_MASK ((ihex_address_t) 0xFFFF0000U)
-enum ihex_read_state {
-    READ_WAIT_FOR_START = 0,
-    READ_COUNT_HIGH = 1,
-    READ_COUNT_LOW,
-    READ_ADDRESS_MSB_HIGH,
-    READ_ADDRESS_MSB_LOW,
-    READ_ADDRESS_LSB_HIGH,
-    READ_ADDRESS_LSB_LOW,
-    READ_RECORD_TYPE_HIGH,
-    READ_RECORD_TYPE_LOW,
-    READ_DATA_HIGH,
-    READ_DATA_LOW
-};
-#define IHEX_READ_RECORD_TYPE_MASK 0x07
-#define IHEX_READ_STATE_MASK 0x78
-#define IHEX_READ_STATE_OFFSET 3
-
-
-void
-ihex_begin_read (struct ihex_state * const ihex) {
-    ihex->address = 0;
-#ifndef IHEX_DISABLE_SEGMENTS
-    ihex->segment = 0;
-#endif
-    ihex->flags = 0;
-    ihex->line_length = 0;
-    ihex->length = 0;
-    ihex->total = 0;  // modified by JV
-    ihex->next_address = 0;  // modified by JV
-    ihex->checksum_error = 0;
-    ihex->length_error = 0;
-}
-
-#ifndef IHEX_DISABLE_SEGMENTS
-void
-ihex_read_at_segment (struct ihex_state * const ihex, ihex_segment_t segment) {
-    ihex_begin_read(ihex);
-    ihex->segment = segment;
-}
-#endif
-
-void
-ihex_end_read (struct ihex_state * const ihex) {
-    uint_fast8_t type = ihex->flags & IHEX_READ_RECORD_TYPE_MASK;
-    uint_fast8_t sum;
-    if ((sum = ihex->length) == 0 && type == IHEX_DATA_RECORD) {
-        return;
-    }
-    {
-        // compute and validate checksum
-        const uint8_t * const eptr = ihex->data + sum;
-        const uint8_t *r = ihex->data;
-        sum += type + (ihex->address & 0xFFU) + ((ihex->address >> 8) & 0xFFU);
-        while (r != eptr) {
-            sum += *r++;
-        }
-        sum = (~sum + 1U) ^ *eptr; // *eptr is the received checksum
-    }
-    if (ihex_data_read(ihex, type, (uint8_t) sum)) {
-        if (type == IHEX_EXTENDED_LINEAR_ADDRESS_RECORD) {
-            ihex->address &= 0xFFFFU;
-            ihex->address |= (((ihex_address_t) ihex->data[0]) << 24) |
-                             (((ihex_address_t) ihex->data[1]) << 16);
-#ifndef IHEX_DISABLE_SEGMENTS
-        } else if (type == IHEX_EXTENDED_SEGMENT_ADDRESS_RECORD) {
-            ihex->segment = (ihex_segment_t) ((ihex->data[0] << 8) | ihex->data[1]);
-#endif
-        }
-    }
-    ihex->length = 0;
-    ihex->flags = 0;
-}
-
-void
-ihex_read_byte (struct ihex_state * const ihex, const char byte) {
-    uint_fast8_t b = (uint_fast8_t) byte;
-    uint_fast8_t len = ihex->length;
-    uint_fast8_t state = (ihex->flags & IHEX_READ_STATE_MASK);
-    ihex->flags ^= state; // turn off the old state
-    state >>= IHEX_READ_STATE_OFFSET;
-
-    if (b >= '0' && b <= '9') {
-        b -= '0';
-    } else if (b >= 'A' && b <= 'F') {
-        b -= 'A' - 10;
-    } else if (b >= 'a' && b <= 'f') {
-        b -= 'a' - 10;
-    } else if (b == IHEX_START) {
-        // sync to a new record at any state
-        state = READ_COUNT_HIGH;
-        goto end_read;
-    } else {
-        // ignore unknown characters (e.g., extra whitespace)
-        goto save_read_state;
-    }
-
-    if (!(++state & 1)) {
-        // high nybble, store temporarily at end of data:
-        b <<= 4;
-        ihex->data[len] = b;
-    } else {
-        // low nybble, combine with stored high nybble:
-        b = (ihex->data[len] |= b);
-        // We already know the lowest bit of `state`, dropping it may produce
-        // smaller code, hence the `>> 1` in switch and its cases.
-        switch (state >> 1) {
-        default:
-            // remain in initial state while waiting for :
-            return;
-        case (READ_COUNT_LOW >> 1):
-            // data length
-            ihex->line_length = b;
-#if IHEX_LINE_MAX_LENGTH < 255
-            if (b > IHEX_LINE_MAX_LENGTH) {
-                ihex_end_read(ihex);
-                return;
-            }
-#endif
-            break;
-        case (READ_ADDRESS_MSB_LOW >> 1):
-            // high byte of 16-bit address
-            ihex->address &= ADDRESS_HIGH_MASK; // clear the 16-bit address
-            ihex->address |= ((ihex_address_t) b) << 8U;
-            break;
-        case (READ_ADDRESS_LSB_LOW >> 1):
-            // low byte of 16-bit address
-            ihex->address |= (ihex_address_t) b;
-            break;
-        case (READ_RECORD_TYPE_LOW >> 1):
-            // record type
-            if (b & ~IHEX_READ_RECORD_TYPE_MASK) {
-                // skip unknown record types silently
-                return;
-            }
-            ihex->flags = (ihex->flags & ~IHEX_READ_RECORD_TYPE_MASK) | b;
-            break;
-        case (READ_DATA_LOW >> 1):
-            if (len < ihex->line_length) {
-                // data byte
-                ihex->length = len + 1;
-                state = READ_DATA_HIGH;
-                goto save_read_state;
-            }
-            // end of line (last "data" byte is checksum)
-            state = READ_WAIT_FOR_START;
-        end_read:
-            ihex_end_read(ihex);
-        }
-    }
-save_read_state:
-    ihex->flags |= state << IHEX_READ_STATE_OFFSET;
-}
-
-void
-ihex_read_bytes (struct ihex_state * ihex,
-                 const char * data,
-                 ihex_count_t count) {
-    while (count > 0) {
-        ihex_read_byte(ihex, *data++);
-        --count;
-    }
+  }  
 }

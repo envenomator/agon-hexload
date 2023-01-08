@@ -41,8 +41,7 @@ int main(int argc, char * argv[]) {
 
 void hexload_vdp(void)
 {
-	printf("Receiving Intel HEX records - VDP\r\n");
-
+	// No local output, the VDP will handle this
 	// set vdu 23/28 to start HEXLOAD code at VDU
 	putch(23);
 	putch(28);
@@ -76,7 +75,7 @@ void hexload_uart1(void)
 	init_UART1();
 	open_UART1(&pUART);								// Open the UART 
 
-	printf("Receiving Intel HEX records - UART1\r\n");
+	printf("UART1 receiving Intel HEX records\r\n");
 
 	c = hxload();
 	

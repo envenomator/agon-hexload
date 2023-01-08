@@ -16,6 +16,7 @@
 			
 	XDEF	_hxload_vdp
 	XDEF	_getTransparentByte
+	XREF	__putch
 	
 ; receive a single keycode/keymods packet from the VDU
 ; keycode can't be 0x00 - so this is escaped with keymods code 0x01
@@ -61,11 +62,12 @@ getbyte_done:
 
 ; hxload_vdp received records from the VDP
 ; each record has
-; HLU - byte - high byte address
-; H   - byte - medium byte address
-; L   - byte - low byte address
-; N   - byte - number of databytes to read
-; 0 - N-1 - bytes of data
+; start - byte - X:Address/Data record, 0:end transmission
+; HLU   - byte - high byte address
+; H     - byte - medium byte address
+; L     - byte - low byte address
+; N     - byte - number of databytes to read
+; 0     - N-1 - bytes of data
 ; 
 ; Last record sent has N == 0, but will send address bytes, no data bytes
 
@@ -75,24 +77,42 @@ _hxload_vdp:
 	push	ix						; safeguard main ixu	
 	call	getSysvars				; returns pointer to sysvars in ixu
 blockloop:
+	ld		d,0						; reset checksum
+	call	getTransparentByte		; ask for start byte
+	or		a
+	jr		z, rbdone				; end of transmission received
+
+	add		a,d
+	ld		d,a
 	call	getTransparentByte		; ask for byte HLU
 	ld		(hexload_address+2),a	; store
+	add		a,d
+	ld		d,a
 	call	getTransparentByte		; ask for byte H
 	ld		(hexload_address+1),a	; store
+	add		a,d
+	ld		d,a
 	call	getTransparentByte		; ask for byte L
 	ld		(hexload_address),a		; store
+	add		a,d
+	ld		d,a
 	call	getTransparentByte		; ask for number of bytes to receive
-	or		a
-	jr		z, rbdone
-
-	ld		hl, hexload_address
-	ld		hl, (hl)				; load the (assembled) pointer from memory
 	ld		b,a						; loop counter
+	add		a,d
+	ld		d,a
+
+	ld		hl, hexload_address		; load address of pointer
+	ld		hl, (hl)				; load the (assembled) pointer from memory
 $$:
 	call	getTransparentByte		; receive each byte in a
 	ld		(hl),a					; store byte in memory
+	add		a,d
+	ld		d,a
 	inc		hl						; next address
 	djnz	$B						; next byte
+	ld		a,d
+	neg								; compute 2s complement from the total checksum						
+	rst.lil	10h 					; return to VDP
 	jp		blockloop
 	
 rbdone:

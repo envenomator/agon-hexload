@@ -1,12 +1,13 @@
 //
-// Title:         iHexLoad
+// Title:         iHexLoad - Enabling Agon VDP to load Intel Hex files over the serial interface with VDU control
 // Author:        Jeroen Venema
-// Contributors:  Kimmo Kulovesi (kk_ihex library https://github.com/arkku/ihex)
 // Created:       05/10/2022
-// Last Updated:  08/10/2022
-//
-// Modinfo:
-//
+// Last Updated:  08/01/2023
+
+#define DEF_LOAD_ADDRESS 0x040000
+#define DEF_U_BYTE  ((DEF_LOAD_ADDRESS >> 16) & 0xFF)
+
+#include <arduino.h>
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -19,7 +20,7 @@ extern void send_packet(uint8_t code, uint8_t len, uint8_t data[]);
 extern void printFmt(const char *format, ...);
 extern uint8_t readByte();
 
-void send_byte(uint8_t b)
+void ez80SendByte(uint8_t b)
 {
   uint8_t packet[2] = {0,0};
 
@@ -42,47 +43,16 @@ void send_byte(uint8_t b)
   }
 }
 
-//
-// CRC32 functions
-//
-uint32_t crc32(const char *s, uint32_t n, bool firstrun)
+// Receive a single Nibble fro the incoming Intel Hex data
+uint8_t getHxNibble(void)
 {
-  static uint32_t crc;
-  static uint32_t crc32_table[256];
-   
-  if(firstrun)
+  uint8_t c ,val;
+
+  c = 0;
+  while(c == 0)
   {
-    for(uint32_t i = 0; i < 256; i++)
-    {
-      uint32_t ch = i;
-      crc = 0;
-      for(uint32_t j = 0; j < 8; j++)
-      {
-        uint32_t b=(ch^crc)&1;
-        crc>>=1;
-        if(b) crc=crc^0xEDB88320;
-        ch>>=1;
-      }
-      crc32_table[i] = crc;
-    }        
-    crc = 0xFFFFFFFF;
+    if(Serial.available() > 0) c = toupper(Serial.read());
   }
-  
-  for(uint32_t i=0;i<n;i++)
-  {
-    char ch=s[i];
-    uint32_t t=(ch^crc)&0xFF;
-    crc=(crc>>8)^crc32_table[t];
-  }
-
-  return ~crc;
-}
-
-uint8_t get_serialnibble(void)
-{
-  uint8_t c,val = 0;
-
-  c = toupper(Serial.read());
   
   if((c >= '0') && c <='9') val = c - '0';
   else val = c - 'A' + 10;
@@ -90,83 +60,104 @@ uint8_t get_serialnibble(void)
   return val;
 }
 
-uint8_t get_serialbyte(void)
+// Receive a byte from the incoming Intel Hex data
+// as two combined nibbles
+uint8_t getHxByte(void)
 {
   uint8_t val = 0;
 
-  val = get_serialnibble() << 4;
-  val |= get_serialnibble();
+  val = getHxNibble() << 4;
+  val |= getHxNibble();
+
+  return val;  
 }
 
-void send_address(uint8_t u, uint8_t h, uint8_t l)
+void echo_checksum(uint8_t hxchecksum, uint8_t ez80checksum)
 {
-  send_byte(u);
-  send_byte(h);
-  send_byte(l);
+  // local echo status to the user
+  if(hxchecksum) printFmt("X");
+  if(ez80checksum) printFmt("x");
+  if((hxchecksum == 0) && (ez80checksum == 0)) printFmt(".");
 }
 
-// NEW Ihex engine
+// Hexload engine
 //
 void vdu_sys_hexload(void)
 {
   uint8_t u,h,l;
   uint8_t count;
   uint8_t record;
-  uint8_t checksum;
-  uint8_t data[256];
-  uint8_t *dataptr;
-  uint8_t c = 0;
-  bool done = false;
+  uint8_t data;
+  uint8_t hxchecksum,ez80checksum;
 
-  uint32_t crc_sent,crc_rec;
-  crc32(0,0,true); // init crc table
-
-  if(Serial.available())
+  bool done,defaultaddress,ez80checksumerror;
+  uint16_t errors;
+  
+  printFmt("VDP receiving Intel HEX records\r\n");
+  u = DEF_U_BYTE;
+  errors = 0;
+  done = false;
+  defaultaddress = true;
+  while(!done)
   {
-    while(!done)
-    {
-      do // hunt for start of record
-      {
-        c = Serial.read();
-      } while (c != ':');
-      count = get_serialbyte(); // number of bytes in this record
-      h = get_serialbyte();     // middle byte of address
-      l = get_serialbyte();     // lower byte of address 
-      record = get_serialbyte();// record type
+    data = 0;
+    // hunt for start of record
+    while(data != ':') if(Serial.available() > 0) data = Serial.read();
 
-      checksum = 0;             // init checksum
-      switch(record)
-      {
-        case 0: // data record
-          send_address(u,h,l);
-          send_byte(count);
-          dataptr = data;
-          while(count--)
-          {
-            *dataptr = get_serialbyte();
-            send_byte(*dataptr);
-            checksum += *dataptr;   // update checksum
-            dataptr++;
-          }
-          checksum += get_serialbyte(); // finalize checksum with actual checksum byte in record
-          break;
-        case 1: // end of file record
-          send_address(0,0,0);
-          send_byte(0);
-          done = true;
-          break;
-        case 4: // extended lineair address record
-          checksum += get_serialbyte();   // ignore top byte of 32bit address, only using 24bit
-          u = get_serialbyte();
-          checksum += u;
-          send_address(u,0,0);
-          checksum += get_serialbyte(); // finalize checksum with actual checksum byte in record
-          break;
-        default:// ignore all else for now
-          break;
-      }
-      if(checksum) printFmt("X");
-      else printFmt(".");     
+    count = getHxByte();  // number of bytes in this record
+    h = getHxByte();      // middle byte of address
+    l = getHxByte();      // lower byte of address 
+    record = getHxByte(); // record type
+
+    hxchecksum = count + h + l + record;  // init control checksum
+    ez80checksum = 1 + u + h + l + count; // to be transmitted as a potential packet to the ez80
+
+    switch(record)
+    {
+      case 0: // data record
+        if(defaultaddress)
+        {
+          printFmt("\r\nAddress 0x%02x0000 (default)\r\n", DEF_U_BYTE);
+          defaultaddress = false;
+        }
+        ez80SendByte(1);      // ez80 data-package start indicator
+        ez80SendByte(u);      // transmit full address in each package  
+        ez80SendByte(h);
+        ez80SendByte(l);
+        ez80SendByte(count);  // number of bytes to send in this package
+        while(count--)
+        {
+          data = getHxByte();
+          ez80SendByte(data);
+          hxchecksum += data;   // update hxchecksum
+          ez80checksum += data; // update checksum from bytes sent to the ez80
+        }
+        ez80checksum += readByte(); // get feedback from ez80 - a 2s complement to the sum of all received bytes, total 0 if no errors      
+        hxchecksum += getHxByte();  // finalize checksum with actual checksum byte in record, total 0 if no errors
+        if(hxchecksum || ez80checksum) errors++;
+        echo_checksum(hxchecksum,ez80checksum);
+        break;
+      case 1: // end of file record
+        ez80SendByte(0);       // end transmission
+        done = true;
+        break;
+      case 4: // extended lineair address record, only update U byte for next transmission to the ez80
+        defaultaddress = false;
+        hxchecksum += getHxByte();   // ignore top byte of 32bit address, only using 24bit
+        u = getHxByte();
+        hxchecksum += u;
+        hxchecksum += getHxByte(); // finalize checksum with actual checksum byte in record, total 0 if no errors
+        if(hxchecksum) errors++;
+        echo_checksum(hxchecksum,0);    // only echo local checksum errors, no ez80<=>ESP packets in this case
+        printFmt("\r\nAddress 0x%02x0000\r\n", u);
+        break;
+      default:// ignore other (non I32Hex) records
+        break;
     }
-  }  
+  }
+  if(errors)
+    printFmt("\r\n%d error(s)\r\n",errors);
+  else
+    printFmt("\r\nOK\r\n");
+  printFmt("VDP done\r\n");   
 }

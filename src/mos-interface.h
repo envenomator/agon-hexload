@@ -7,6 +7,7 @@
  * Modinfo:
  * 15/10/2022:		Added putch, getch
  * 22/10/2022:		Added waitvblank, mos_f* functions
+ * 10/01/2023:      Added getsysvar_cursorX/Y functions, removed generic getsysvar8/16/24bit functions
  */
 
 #ifndef MOS_H
@@ -39,10 +40,9 @@ extern int  putch(int a);
 extern char  getch(void);
 extern void  waitvblank(void);
 
-extern UINT8 getsysvar8bit(UINT8 sysvar);
-extern UINT16 getsysvar16bit(UINT8 sysvar);
-extern UINT24 getsysvar24bit(UINT8 sysvar);
-
+extern UINT8 getsysvar_cursorX();
+extern UINT8 getsysvar_cursorY();
+extern UINT8 getsysvar_scrchar();
 
 extern UINT8 mos_fopen(char * filename, UINT8 mode); // returns filehandle, or 0 on error
 extern UINT8 mos_fclose(UINT8 fh);					 // returns number of still open files

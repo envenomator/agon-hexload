@@ -80,6 +80,14 @@ void echo_checksum(uint8_t hxchecksum, uint8_t ez80checksum)
   if((hxchecksum == 0) && (ez80checksum == 0)) printFmt(".");
 }
 
+void sendFakeCursorPosition() {
+	byte packet[] = {
+		1,
+		1,
+	};
+	send_packet(PACKET_CURSOR, sizeof packet, packet);	
+}
+
 // Hexload engine
 //
 void vdu_sys_hexload(void)
@@ -93,6 +101,16 @@ void vdu_sys_hexload(void)
   bool done,defaultaddress,ez80checksumerror;
   uint16_t errors;
   
+  // The client has previously sent a CR/LF command, setting cursor X to 0
+  // It then sends VDU 23,0,2 - send cursor position
+  // Regular MOS returns the correct position, but we intercept during the hexload call and reply with X=1,Y=1
+  readByte(); // 23
+  readByte(); //  0
+  readByte(); //  2 -> VDU (23,0,2) send cursor position
+  // The regular VDP will send X=0, The patched VDP reply differently, so the client can tell if the VDP is patched
+  sendFakeCursorPosition();
+  delay(5); // allow the ez80 time to process the interrupt and update the X/Y position variables
+
   printFmt("VDP receiving Intel HEX records\r\n");
   u = DEF_U_BYTE;
   errors = 0;

@@ -12,6 +12,7 @@
 <file filter-key="">.\hxload.asm</file>
 <file filter-key="">.\crc32.c</file>
 <file filter-key="">.\mos_bytestream.asm</file>
+<file filter-key="">.\vdp.c</file>
 </files>
 
 <!-- configuration information -->

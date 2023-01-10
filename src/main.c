@@ -21,6 +21,7 @@
 #include <string.h>
 #include "mos-interface.h"
 #include "uart.h"
+#include "vdp.h"
 #include "crc32.h"
 
 typedef void * rom_set_vector(unsigned int vector, void(*handler)(void));
@@ -31,22 +32,43 @@ CHAR hxload(void);
 void hxload_vdp(void);
 
 int main(int argc, char * argv[]) {
+
+	UINT8 x,y;
 	
 	//if((argc == 2) && (strcmp(argv[1],"vdp") == 0)) hexload_vdp();
 	//else hexload_uart1();
 	hexload_vdp();
-	
+	//printf("\r\n");
+
+	//x = vdp_cursorGetXpos();
+	//y = vdp_cursorGetYpos();
+	//printf("x = %d, y = %d\r\n",x,y);
 	return 0;
 }
 
 void hexload_vdp(void)
 {
+	// First we need to test the VDP version in use
+	printf("\r");	// set the cursor to X:0, Y unknown, doesn't matter
 	// No local output, the VDP will handle this
 	// set vdu 23/28 to start HEXLOAD code at VDU
 	putch(23);
 	putch(28);
-	// We can't transmit any text during bytestream reception, so the VDU handles this
-	hxload_vdp();
+	
+	// A regular VDP will have the cursor at X:0, the patched version will send X:1
+	switch(vdp_cursorGetXpos())
+	{
+		case(0):
+			printf("VDP needs a patch\r\n");
+			break;
+		case(1):
+			// We can't transmit any text during bytestream reception, so the VDU handles this remotely
+			hxload_vdp();				
+			break;
+		default:
+			printf("Incompatible VDP patch for this function\r\n");
+			break;
+	}
 }
 
 void hexload_uart1(void)

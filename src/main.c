@@ -22,7 +22,6 @@
 #include "mos-interface.h"
 #include "uart.h"
 #include "vdp.h"
-#include "crc32.h"
 
 typedef void * rom_set_vector(unsigned int vector, void(*handler)(void));
 
@@ -87,11 +86,11 @@ void hexload_uart1(void)
 	
 	// Check for MOS 1.02 first
 	printf("Checking MOS version 1.02...\r\n");
-	if(crc32((char*)0, MOS102_SIZE) != MOS102_CRC)
-	{
-		printf("Incompatible version\r\n");
-		return;
-	}
+//	if(crc32((char*)0, MOS102_SIZE) != MOS102_CRC)
+//	{
+//		printf("Incompatible version\r\n");
+//		return;
+//	}
 
 	oldvector = set_vector(UART1_IVECT, uart1_handler);
 	init_UART1();

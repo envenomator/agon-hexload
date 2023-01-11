@@ -2,8 +2,10 @@
 ## Purpose
 Playing microSD jockey during assemble/compile/transfer/test/debug cycles is no fun at all. I'd like to shorten this cycle significantly by removing the need to physically bring over new binaries to the Agon.
 
-This code patches Quark VDP, so the user can send Intel HEX files from the USB-Serial interface, directly to ez80 memory.
-After compile/assemble, you can use whatever you like to send the contents of the resulting .hex file to the USB-Serial port from your PC.
+With the hexload command you are able to transmit Intel I32 hex files to one of the Agon serial ports and run your code immediately from memory.
+There are two option this command provides:
+1. The UART1 serial port can be used at the external GPIO serial pins PC0/TxD1, PC1/RxD1 and GND.
+2. The ESP USB port that powers the Agon can be used, using the serial-over-USB interface it provides. This requires patching the VDP source and flashing it to the ESP32.
 
 ![image](https://github.com/envenomator/Agon/blob/master/Programs/hexload/example.jpg?raw=true)
 

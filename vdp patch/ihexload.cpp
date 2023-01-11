@@ -111,7 +111,7 @@ void vdu_sys_hexload(void)
   sendFakeCursorPosition();
   delay(5); // allow the ez80 time to process the interrupt and update the X/Y position variables
 
-  printFmt("VDP receiving Intel HEX records\r\n");
+  printFmt("Receiving Intel HEX records - VDP:115200 8N1\r\n\r\n");
   u = DEF_U_BYTE;
   errors = 0;
   done = false;

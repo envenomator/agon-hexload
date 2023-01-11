@@ -8,43 +8,58 @@
  * 22/10/2022:		Initial version MOS patch
  * 23/10/2022:		Receive_bytestream in assembly
  * 26/11/2022:		MOS commandline version
- * 07/01/2023:		Removed VDP patch bytestream option, shift to UART1 code
+ * 07/01/2023:		New UART1 code
+ * 11/01/2023:		Release 0.9
  */
 
 #define MOS_defaultLoadAddress 0x040000		// if no address is given from the transmitted Hex file
 #define MOS102_SETVECTOR	   0x000956		// as assembled in MOS 1.02, until set_vector becomes a API call in a later MOS version
 #define MOS102_FP_SIZE			     26		// 26 bytes to check from the SET_VECTOR address, kludgy, but works for now
+#define DEFAULT_BAUDRATE 		 384000
 
 #include <stdio.h>
 #include <ctype.h>
 #include <string.h>
+#include <stdlib.h>
 #include "mos-interface.h"
 #include "uart.h"
 #include "vdp.h"
 
 typedef void * rom_set_vector(unsigned int vector, void(*handler)(void));
 
-//extern char[26] mos102_fingerprint;
+extern char mos102_fingerprint; // needs to be extern to C, in assembly  DB with a label, or the ZDS C compiler will put it in ROM space
 
-extern char mos102_fingerprint;
-
-void hexload_uart1(void);
+void hexload_uart1(UINT24 baudrate);
 void hexload_vdp(void);
 CHAR hxload(void);
 void hxload_vdp(void);
 
+int errno; // needed by stdlib
+
 int main(int argc, char * argv[]) {
-
-	UINT8 x,y;
+	UINT24 baudrate = 0;
 	
-	//if((argc == 2) && (strcmp(argv[1],"vdp") == 0)) hexload_vdp();
-	hexload_uart1();
-	//hexload_vdp();
-	//printf("\r\n");
+	if(argc == 1)
+	{
+		printf("Usage: hexload <uart1 [baudrate] | vdp>\r\n");
+		return 0;
+	}
+	else
+	{
+		if(strcmp("uart1",argv[1]) == 0)
+		{
+			if(argc == 3) baudrate = atol(argv[2]);
+			if(baudrate <= 0) baudrate = DEFAULT_BAUDRATE;
+			hexload_uart1(baudrate);
+			return 0;
+		}
 
-	//x = vdp_cursorGetXpos();
-	//y = vdp_cursorGetYpos();
-	//printf("x = %d, y = %d\r\n",x,y);
+		if(strcmp("vdp",argv[1]) == 0)
+		{
+			hexload_vdp();
+			return 0;
+		}			
+	}
 	return 0;
 }
 
@@ -67,7 +82,7 @@ void hexload_vdp(void)
 	hxload_vdp();				
 }
 
-void hexload_uart1(void)
+void hexload_uart1(UINT24 baudrate)
 {
 	CHAR c;
 	CHAR *fpptr,*chkptr;
@@ -76,7 +91,7 @@ void hexload_uart1(void)
 	rom_set_vector *set_vector = (rom_set_vector *)MOS102_SETVECTOR;	
 	UART 	pUART;
 
-	pUART.baudRate = 384000;
+	pUART.baudRate = baudrate;
 	pUART.dataBits = 8;
 	pUART.stopBits = 1;
 	pUART.parity = PAR_NOPARITY;
@@ -94,7 +109,7 @@ void hexload_uart1(void)
 	init_UART1();
 	open_UART1(&pUART);								// Open the UART 
 
-	printf("UART1 receiving Intel HEX records\r\n");
+	printf("Receiving Intel HEX records - UART1:%d 8N1\r\n",baudrate);
 
 	c = hxload();
 	
@@ -102,6 +117,6 @@ void hexload_uart1(void)
 	else printf("%d error(s)\r\n",c);
 
 	// disable UART1 interrupt, set previous vector
-	set_vector(UART1_IVECT, oldvector);
+	//set_vector(UART1_IVECT, oldvector);
 }
 

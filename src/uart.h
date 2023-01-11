@@ -10,7 +10,7 @@
 
 #include <gpio.h>
 
-#define MASTERCLOCK				20000000	        	//!< The default system clock speed for eZ80F92.
+#define MASTERCLOCK				18432000	        	//!< The default system clock speed for eZ80F92.
 #define CLOCK_DIVISOR_16		16			        	//!< The default clock divisor 
 
 #if !defined(UART1_IVECT) 								//!< If it is not defined 

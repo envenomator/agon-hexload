@@ -26,7 +26,8 @@
 	XDEF _getsysvar_cursorX
 	XDEF _getsysvar_cursorY
 	XDEF _getsysvar_scrchar
-	
+	XDEF _mos102_fingerprint
+
 	segment CODE
 	.assume ADL=1
 	
@@ -160,6 +161,10 @@ _mos_feof:
 	ld sp,iy
 	pop iy
 	ret	
+
+			SEGMENT DATA
+_mos102_fingerprint:
+		DB FDh,E5h,FDh,21h,00h,00h,00h,FDh,39h,F5h,EDh,57h,F5h,F3h,01h,00h,00h,00h,06h,02h,FDh,4Eh,06h,EDh,4Ch,21h
 
 end
 

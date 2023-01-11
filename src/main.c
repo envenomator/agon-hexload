@@ -13,8 +13,7 @@
 
 #define MOS_defaultLoadAddress 0x040000		// if no address is given from the transmitted Hex file
 #define MOS102_SETVECTOR	   0x000956		// as assembled in MOS 1.02, until set_vector becomes a API call in a later MOS version
-#define MOS102_SIZE				  46846
-#define MOS102_CRC			 0xfe59e98d
+#define MOS102_FP_SIZE			     26		// 26 bytes to check from the SET_VECTOR address, kludgy, but works for now
 
 #include <stdio.h>
 #include <ctype.h>
@@ -24,6 +23,10 @@
 #include "vdp.h"
 
 typedef void * rom_set_vector(unsigned int vector, void(*handler)(void));
+
+//extern char[26] mos102_fingerprint;
+
+extern char mos102_fingerprint;
 
 void hexload_uart1(void);
 void hexload_vdp(void);
@@ -35,8 +38,8 @@ int main(int argc, char * argv[]) {
 	UINT8 x,y;
 	
 	//if((argc == 2) && (strcmp(argv[1],"vdp") == 0)) hexload_vdp();
-	//else hexload_uart1();
-	hexload_vdp();
+	hexload_uart1();
+	//hexload_vdp();
 	//printf("\r\n");
 
 	//x = vdp_cursorGetXpos();
@@ -55,25 +58,19 @@ void hexload_vdp(void)
 	putch(28);
 	
 	// A regular VDP will have the cursor at X:0, the patched version will send X:1
-	switch(vdp_cursorGetXpos())
+	if(vdp_cursorGetXpos() != 1)
 	{
-		case(0):
-			printf("VDP needs a patch\r\n");
-			break;
-		case(1):
-			// We can't transmit any text during bytestream reception, so the VDU handles this remotely
-			hxload_vdp();				
-			break;
-		default:
-			printf("Incompatible VDP patch for this function\r\n");
-			break;
+		printf("Incompatible VDP version\r\n");
+		return;
 	}
+	// We can't transmit any text during bytestream reception, so the VDU handles this remotely
+	hxload_vdp();				
 }
 
 void hexload_uart1(void)
 {
-	INT32 crcresult;
 	CHAR c;
+	CHAR *fpptr,*chkptr;
 	void *oldvector;
 	
 	rom_set_vector *set_vector = (rom_set_vector *)MOS102_SETVECTOR;	
@@ -85,13 +82,14 @@ void hexload_uart1(void)
 	pUART.parity = PAR_NOPARITY;
 	
 	// Check for MOS 1.02 first
-	printf("Checking MOS version 1.02...\r\n");
-//	if(crc32((char*)0, MOS102_SIZE) != MOS102_CRC)
-//	{
-//		printf("Incompatible version\r\n");
-//		return;
-//	}
-
+	fpptr = (char *)MOS102_SETVECTOR;
+	chkptr = &mos102_fingerprint;
+	if(memcmp(fpptr,chkptr,MOS102_FP_SIZE) != 0) // needs exact match
+	{
+		printf("Incompatible MOS version\r\n");
+		return;
+	}
+	
 	oldvector = set_vector(UART1_IVECT, uart1_handler);
 	init_UART1();
 	open_UART1(&pUART);								// Open the UART 

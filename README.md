@@ -31,6 +31,8 @@ Using the VDP does allow for feedback to the user during transmission. The VDP i
 ### Sending files
 Intel Hex files must be sent in textformat, over one of the serial interfaces. I have provided an example send.py python script to automate this process; edit your serial port and speed in the script as needed and provide the Intel Hex file as argument.
 
+    send.py filename <port> <baudrate>
+    
 In some cases using the VDP, the first time the ESP serial is used after a reboot, it can trigger the boot-mode from the ESP. Just press reset and try again, or set the ESP boot jumper to disabled.
 
 ## Start address

@@ -5,12 +5,12 @@ Playing microSD jockey during assemble/compile/transfer/test/debug cycles is no 
 With the hexload command you are able to transmit Intel I32 hex files to one of the Agon serial ports and run your code immediately from memory.
 
 ## Options
-There are two options this utility provides:
+This utility provides two options:
 1. The UART1 serial port can be used at the external GPIO serial pins PC0/TxD1, PC1/RxD1 and GND. Connect to external serial interfaces (3.3v), like for example a USB-Serial FTDI adapter
-![image](https://github.com/envenomator/agon-hexload/blob/master/uarttransfer.png?raw=true)
+![Multiple transfers using different baudrates and addresses](https://github.com/envenomator/agon-hexload/blob/master/uarttransfer.png?raw=true)
 
 2. The ESP USB port that powers the Agon can be used, using the serial-over-USB interface it provides, without requiring a separate interface. This requires patching the VDP source and flashing it to the ESP32.
-![image](https://github.com/envenomator/agon-hexload/blob/master/vdptransfer.png?raw=true)
+![A single transfer over the VDP serial](https://github.com/envenomator/agon-hexload/blob/master/vdptransfer.png?raw=true)
 
 ## Installation
 Copy 'hexload.bin' to the \mos\ directory on the microSD card. If no such directory exists, create it first. This allows the usage of arguments to the utility and loading it using it's base name.

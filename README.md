@@ -21,14 +21,15 @@ The utility requires at least MOS version 1.02
 ### Commandline
     hexload <uart1 [baudrate] | vdp>
 
-### Baudrates
-The uart1 option has a selectable baudrate like 115200. If no baudrate is given, the default of 384000 is selected. The vdp option uses 115200 by default. The actual baudrate used is echoed to the user at startup.
+### Baudrate
+The uart1 option has a selectable baudrate. If no baudrate is given, the default of 384000 is selected. The vdp option uses 115200 by default. The actual baudrate used is echoed to the user at startup.
 
-### Feedback differences during transmission
-During reception of Intel Hex files on the UART1, no feedback is given to the user before transmission is terminated by a 01 record. Using the VDP allows for feedback to the user during transmission. The VDP informs the user of every address record sent.
+### Difference in feedback during transmission
+During reception of Intel Hex files on the UART1, no feedback is given to the user before transmission is terminated by a 01 record. There is not enough CPU available to handle output while also processing the input at high speed.
+Using the VDP does allow for feedback to the user during transmission. The VDP informs the user of every address record sent.
 
 ### Sending files
-Intel Hex files can be sent in different ways, in textformat, over one of the serial interfaces. I have provided an example send.py python script to automate this process; set your serial port and speed as needed and provide the Intel Hex file as argument.
+Intel Hex files must be sent in textformat, over one of the serial interfaces. I have provided an example send.py python script to automate this process; edit your serial port and speed in the script as needed and provide the Intel Hex file as argument.
 
 In some cases using the VDP, the first time the ESP serial is used after a reboot, it can trigger the boot-mode from the ESP. Just press reset and try again, or set the ESP boot jumper to disabled.
 

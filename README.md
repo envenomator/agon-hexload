@@ -7,10 +7,10 @@ With the hexload command you are able to transmit Intel I32 hex files to one of 
 ## Options
 This utility provides two options:
 1. The UART1 serial port can be used at the external GPIO serial pins PC0/TxD1, PC1/RxD1 and GND. Connect to external serial interfaces (3.3v), like for example a USB-Serial FTDI adapter
-![Multiple transfers using different baudrates and addresses](https://github.com/envenomator/agon-hexload/blob/master/uarttransfer.png?raw=true)
+![Multiple transfers using different baudrates and addresses](https://github.com/envenomator/agon-hexload/blob/master/media/uarttransfer.png?raw=true)
 
 2. The ESP USB port that powers the Agon can be used, using the serial-over-USB interface it provides, without requiring a separate interface. This requires patching the VDP source and flashing it to the ESP32.
-![A single transfer over the VDP serial](https://github.com/envenomator/agon-hexload/blob/master/vdptransfer.png?raw=true)
+![A single transfer over the VDP serial](https://github.com/envenomator/agon-hexload/blob/master/media/vdptransfer.png?raw=true)
 
 ## Installation
 Copy 'hexload.bin' to the \mos\ directory on the microSD card. If no such directory exists, create it first. This allows the usage of arguments to the utility and loading it using it's base name.
@@ -32,7 +32,7 @@ Using the VDP does allow for feedback to the user during transmission. The VDP i
 Intel Hex files must be sent in textformat, over one of the serial interfaces. I have provided an example send.py python script to automate this process; edit your serial port and speed in the script as needed and provide the Intel Hex file as argument.
 
     send.py filename <port> <baudrate>
-    
+
 In some cases using the VDP, the first time the ESP serial is used after a reboot, it can trigger the boot-mode from the ESP. Just press reset and try again, or set the ESP boot jumper to disabled.
 
 ## Start address

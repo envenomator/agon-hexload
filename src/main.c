@@ -12,7 +12,6 @@
  * 11/01/2023:		Release 0.9
  */
 
-#define MOS_defaultLoadAddress 0x040000		// if no address is given from the transmitted Hex file
 #define MOS102_SETVECTOR	   0x000956		// as assembled in MOS 1.02, until set_vector becomes a API call in a later MOS version
 #define MOS102_FP_SIZE			     26		// 26 bytes to check from the SET_VECTOR address, kludgy, but works for now
 #define DEFAULT_BAUDRATE 		 384000
@@ -27,43 +26,15 @@
 
 typedef void * rom_set_vector(unsigned int vector, void(*handler)(void));
 
-extern char mos102_fingerprint; // needs to be extern to C, in assembly  DB with a label, or the ZDS C compiler will put it in ROM space
+extern char mos102_fingerprint; // needs to be extern to C, in assembly DB with a label, or the ZDS C compiler will put it in ROM space
 
-void hexload_uart1(UINT24 baudrate);
-void hexload_vdp(void);
-CHAR hxload(void);
-void hxload_vdp(void);
+// external assembly routines
+extern CHAR hxload_uart1(void);
+extern void hxload_vdp(void);
 
 int errno; // needed by stdlib
 
-int main(int argc, char * argv[]) {
-	UINT24 baudrate = 0;
-	
-	if(argc == 1)
-	{
-		printf("Usage: hexload <uart1 [baudrate] | vdp>\r\n");
-		return 0;
-	}
-	else
-	{
-		if(strcmp("uart1",argv[1]) == 0)
-		{
-			if(argc == 3) baudrate = atol(argv[2]);
-			if(baudrate <= 0) baudrate = DEFAULT_BAUDRATE;
-			hexload_uart1(baudrate);
-			return 0;
-		}
-
-		if(strcmp("vdp",argv[1]) == 0)
-		{
-			hexload_vdp();
-			return 0;
-		}			
-	}
-	return 0;
-}
-
-void hexload_vdp(void)
+void handle_hexload_vdp(void)
 {
 	// First we need to test the VDP version in use
 	printf("\r");	// set the cursor to X:0, Y unknown, doesn't matter
@@ -82,7 +53,7 @@ void hexload_vdp(void)
 	hxload_vdp();				
 }
 
-void hexload_uart1(UINT24 baudrate)
+void handle_hexload_uart1(UINT24 baudrate)
 {
 	CHAR c;
 	CHAR *fpptr,*chkptr;
@@ -99,24 +70,52 @@ void hexload_uart1(UINT24 baudrate)
 	// Check for MOS 1.02 first
 	fpptr = (char *)MOS102_SETVECTOR;
 	chkptr = &mos102_fingerprint;
-	if(memcmp(fpptr,chkptr,MOS102_FP_SIZE) != 0) // needs exact match
+	if(memcmp(fpptr,chkptr,MOS102_FP_SIZE) != 0) // needs exact fingerprint match
 	{
 		printf("Incompatible MOS version\r\n");
 		return;
 	}
 	
-	oldvector = set_vector(UART1_IVECT, uart1_handler);
-	init_UART1();
-	open_UART1(&pUART);								// Open the UART 
+	oldvector = set_vector(UART1_IVECT, uart1_handler);	// register interrupt handler for UART1
+	init_UART1();										// set the Rx/Tx port pins
+	open_UART1(&pUART);									// Open the UART, set interrupt 
 
+	// Only feedback during transfer - we have no time to output to VDP or even UART1 between received bytes
 	printf("Receiving Intel HEX records - UART1:%d 8N1\r\n",baudrate);
-
-	c = hxload();
+	c = hxload_uart1();
 	
 	if(c == 0) printf("OK\r\n");
 	else printf("%d error(s)\r\n",c);
 
-	// disable UART1 interrupt, set previous vector
-	//set_vector(UART1_IVECT, oldvector);
+	// close UART1, so no more interrupts and default port pins Rx/Tx
+	close_UART1();
+	// disable UART1 interrupt, set previous vector (__default_mi_handler in MOS ROM, might change on every revision)
+	set_vector(UART1_IVECT, oldvector);
 }
 
+int main(int argc, char * argv[]) {
+	UINT24 baudrate = 0;
+	
+	if(argc == 1)
+	{
+		printf("Usage: hexload <uart1 [baudrate] | vdp>\r\n");
+		return 0;
+	}
+	else
+	{
+		if(strcmp("uart1",argv[1]) == 0)
+		{
+			if(argc == 3) baudrate = atol(argv[2]);
+			if(baudrate <= 0) baudrate = DEFAULT_BAUDRATE;
+			handle_hexload_uart1(baudrate);
+			return 0;
+		}
+
+		if(strcmp("vdp",argv[1]) == 0)
+		{
+			handle_hexload_vdp();
+			return 0;
+		}			
+	}
+	return 0;
+}

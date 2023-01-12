@@ -17,13 +17,13 @@
 			
 			XREF	__putch
 			XREF	_uart1_getch
-			XDEF	_hxload
+			XDEF	_hxload_uart1
 			XDEF	_hxload_vdp
 			XDEF	_getTransparentByte
 			
 LOAD_HLU_DEFAULT	.EQU	04h		; 0x040000 default load address
 
-_hxload:
+_hxload_uart1:
 			PUSH	DE
 			PUSH	HL
 			PUSH	BC

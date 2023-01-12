@@ -155,6 +155,7 @@ typedef struct {
 
 VOID init_UART1();
 UCHAR open_UART1(UART *pUART);
+VOID close_UART1( VOID );
 
 VOID uart1_puts(CHAR *str);
 extern void 	uart1_handler(void);

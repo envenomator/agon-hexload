@@ -2,12 +2,15 @@
  * Title:			AGON - Loadable UART1 code
  * Author:			Jeroen Venema, original by Dean Belfeld
  * Created:			06/01/2023
- * Last Updated:	06/01/2023
+ * Last Updated:	12/01/2023
  * 
  * The UART1 is on Port C
  *
  * - Port C0: TX
  * - Port C1: RX
+ *
+ * Mods:
+ * 12/01/2023 - Added close_UART to disable interrupts to UART1
  */
  
 #include <stddef.h>
@@ -15,7 +18,6 @@
 #include <eZ80.h>
 #include <defines.h>
 #include <gpio.h>
-
 #include "uart.h"
  
 // Set the Line Control Register for data, stop and parity bits
@@ -57,6 +59,18 @@ UCHAR open_UART1(UART *pUART) {
 	SETREG_LCR1(pUART->dataBits, pUART->stopBits, pUART->parity);	//! Set the line status register.
 	
 	return UART_ERR_NONE ;
+}
+
+VOID close_UART1( VOID )
+{
+	UART1_IER = 0 ;													//! Disable all UART1 interrupts.
+	UART1_LCTL = 0 ;												//! Bring line control register to reset value.
+	UART1_MCTL = 0x00 ;												//! Bring modem control register to reset value.
+	UART1_FCTL = 0 ;												//! Bring FIFO control register to reset value.
+
+	init_UART1();													// set port pins to original values
+	return ;
+
 }
 
 VOID uart1_puts(CHAR *str)

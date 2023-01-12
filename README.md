@@ -35,6 +35,10 @@ Intel Hex files must be sent in textformat, over one of the serial interfaces. I
 
 In some cases using the VDP, the first time the ESP serial is used after a reboot, it can trigger the boot-mode from the ESP. Just press reset and try again, or set the ESP boot jumper to disabled.
 
+### UART1 pinout
+- Tx: GPIO pin PC0 - connect to your adapter serial Rx
+- Rx: GPIO pin PC1 - connect to your adapter serial Tx
+
 ## Start address
 The hexload utility will load the Intel Hex file to memory, according to the specified 'Extended Lineair Address' records in the file itself. If you want to load a program to a specific address, you'll need make sure that whatever creates your Intel Hex file sets the addresses appropriately for the Agon platform.
 The hexload utility doesn't check for invalid address ranges like the flash, or MOS ranges.

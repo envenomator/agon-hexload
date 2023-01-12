@@ -9,6 +9,7 @@
 ; 24/10/2022:	0x00 escape code now contained in keymods, resulting in faster upload baudrate
 ; 26/11/2022:   Adapted as loadable command
 ; 10/01/2023:	Major modifications, include new uart code
+; 12/01/2023:	Release 1.0, cleanup
 
 	.include "mos_api.inc"
 

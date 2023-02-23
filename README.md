@@ -19,7 +19,7 @@ The utility requires at least MOS version 1.02
 
 ## Usage
 ### Commandline
-    hexload <uart1 [baudrate] | vdp>
+    hexload <uart1 [baudrate] | vdp> [filename]
 
 ### Baudrate
 The uart1 option has a selectable baudrate. If no baudrate is given, the default of 384000 is selected. The vdp option uses 115200 by default. The actual baudrate used is echoed to the user at startup.

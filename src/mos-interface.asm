@@ -30,7 +30,7 @@
 
 	segment CODE
 	.assume ADL=1
-	
+
 _putch:
 __putch:
 	push 	iy

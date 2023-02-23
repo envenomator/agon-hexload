@@ -10,6 +10,8 @@
  * 26/11/2022:		MOS commandline version
  * 07/01/2023:		New UART1 code
  * 11/01/2023:		Release 0.9
+ * 23/02/2023:		Bugfix - DEFB used, should have been DS at end of hxload.asm
+ *                  Option to save as file to SD card
  */
 
 #define MOS102_SETVECTOR	   0x000956		// as assembled in MOS 1.02, until set_vector becomes a API call in a later MOS version
@@ -29,10 +31,25 @@ typedef void * rom_set_vector(unsigned int vector, void(*handler)(void));
 extern char mos102_fingerprint; // needs to be extern to C, in assembly DB with a label, or the ZDS C compiler will put it in ROM space
 
 // external assembly routines
-extern CHAR hxload_uart1(void);
-extern void hxload_vdp(void);
+extern CHAR		hxload_uart1(void);
+extern void		hxload_vdp(void);
+extern UINT8	mos_save(char *filename, UINT24 address, UINT24 nbytes);
+extern UINT8	mos_del(char *filename);
+// external variables
+extern volatile UINT24 startaddress;
+extern volatile UINT24 endaddress;
 
 int errno; // needed by stdlib
+
+void write_file(char *filename) {
+	if(filename) {
+		printf("Writing to \"%s\"...\r\n", filename);
+		mos_del(filename);
+		if(mos_save(filename, startaddress, (endaddress-startaddress)) == 0)
+			printf("%d bytes\r\n", (endaddress-startaddress));
+		else printf("File error\r\n");
+	}
+}
 
 void handle_hexload_vdp(void)
 {
@@ -50,7 +67,7 @@ void handle_hexload_vdp(void)
 		return;
 	}
 	// We can't transmit any text during bytestream reception, so the VDU handles this remotely
-	hxload_vdp();				
+	hxload_vdp();					
 }
 
 void handle_hexload_uart1(UINT24 baudrate)
@@ -95,27 +112,48 @@ void handle_hexload_uart1(UINT24 baudrate)
 
 int main(int argc, char * argv[]) {
 	UINT24 baudrate = 0;
+	char *end;
+	char *filename = NULL;
 	
 	if(argc == 1)
 	{
-		printf("Usage: hexload <uart1 [baudrate] | vdp>\r\n");
+		printf("Usage: hexload <uart1 [baudrate]| vdp> [filename]\r\n");
 		return 0;
 	}
-	else
+
+	if(strcmp("uart1",argv[1]) == 0)
 	{
-		if(strcmp("uart1",argv[1]) == 0)
-		{
-			if(argc == 3) baudrate = atol(argv[2]);
-			if(baudrate <= 0) baudrate = DEFAULT_BAUDRATE;
-			handle_hexload_uart1(baudrate);
+		if(argc >= 3) {
+			baudrate = strtol(argv[2], &end, 10);
+			if(*end) { 
+				baudrate = 0;
+				filename = argv[2];
+			}
+			if(argc == 4) {
+				if(filename) baudrate = strtol(argv[3], &end, 10);
+				else filename = argv[3];
+			}
+			if(argc > 4) {
+				printf("Too many arguments\r\n");
+				return 0;
+			}
+		}
+		if(baudrate <= 0) baudrate = DEFAULT_BAUDRATE;
+		handle_hexload_uart1(baudrate);
+		write_file(filename);
+		return 0;
+	}
+
+	if(strcmp("vdp",argv[1]) == 0)
+	{
+		if(argc > 3) {
+			printf("Too many arguments\r\n");
 			return 0;
 		}
-
-		if(strcmp("vdp",argv[1]) == 0)
-		{
-			handle_hexload_vdp();
-			return 0;
-		}			
-	}
+		if((argc == 3) && (argv[2])) filename = argv[2];
+		handle_hexload_vdp();
+		write_file(filename);
+		return 0;
+	}			
 	return 0;
 }

@@ -21,6 +21,10 @@
 			XDEF	_hxload_uart1
 			XDEF	_hxload_vdp
 			XDEF	_getTransparentByte
+			XDEF	_startaddress
+			XDEF	_endaddress
+			XDEF	_mos_save
+			XDEF	_mos_del
 			
 LOAD_HLU_DEFAULT	.EQU	04h		; 0x040000 default load address
 
@@ -31,6 +35,9 @@ _hxload_uart1:
 			
 			XOR		A,A
 			LD		(hexload_error),A		; clear error counter
+			LD		A, 1
+			LD		(firstwrite),A			; firstwrite = true	
+
 			;LD		A,LOAD_HLU_DEFAULT		; default upper byte load address 0x040000 in HLU
 			;LD		(hexload_address+2),A	; in case record 04 goes missing
 hxline:
@@ -62,6 +69,13 @@ hex_address:
 			LD		(hexload_address),A
 			LD		HL, hexload_address
 			LD		HL,(HL)					; load assembled address from memory into HL as a pointer
+			ld		A,(firstwrite)			; is this the first address we write to?
+			CP		A,1
+			JR		NZ, $F					; if not, skip storing the first address
+			XOR		A,A						; firstwrite = false
+			LD		(firstwrite),A
+			LD		(_startaddress),HL		; store first address
+$$:
 			CALL	getbyte					; load checksum
 			LD		A,E
 			OR		A
@@ -77,6 +91,7 @@ hexdata:
 			LD		A,E
 			OR		A						; sum of all data incl checksum should be zero
 			JR		NZ, hexckerr			; checksum error on this line
+			LD		(_endaddress), HL		; store end address
 			JR		hxline
 hexckerr:
 			LD		A,(hexload_error)
@@ -173,7 +188,9 @@ getbyte_done:
 _hxload_vdp:
 	push	de
 	push	bc
-	push	ix						; safeguard main ixu	
+	push	ix						; safeguard main ixu
+	ld		a, 1
+	ld		(firstwrite),a			; firstwrite = true	
 	call	getSysvars				; returns pointer to sysvars in ixu
 blockloop:
 	ld		d,0						; reset checksum
@@ -202,6 +219,12 @@ blockloop:
 
 	ld		hl, hexload_address		; load address of pointer
 	ld		hl, (hl)				; load the (assembled) pointer from memory
+	ld		a,(firstwrite)			; is this the first address we write to?
+	cp		a,1
+	jr		nz, $F					; if not, skip storing the first address
+	xor		a,a						; firstwrite = false
+	ld		(firstwrite),a
+	ld		(_startaddress),hl		; store first address
 $$:
 	call	getTransparentByte		; receive each byte in a
 	ld		(hl),a					; store byte in memory
@@ -212,6 +235,7 @@ $$:
 	ld		a,d
 	neg								; compute 2s complement from the total checksum						
 	rst.lil	10h 					; return to VDP
+	ld		(_endaddress), hl		; store end address
 	jp		blockloop
 	
 rbdone:
@@ -220,7 +244,37 @@ rbdone:
 	pop de
 	ret
 
+_mos_del:
+	push	ix
+	ld 		ix,0
+	add 	ix, sp
+
+	ld 		hl, (ix+6)	; filename address (zero terminated)
+	ld a,	mos_del
+	rst.lil	08h			; save file to SD card
+
+	ld		sp,ix
+	pop		ix
+	ret
+	
+_mos_save:
+	push	ix
+	ld 		ix,0
+	add 	ix, sp
+
+	ld 		hl, (ix+6)	; filename address (zero terminated)
+	ld		de, (ix+9)	; address to save from
+	ld		bc, (ix+12)	; number of bytes to save
+	ld a,	mos_save
+	rst.lil	08h			; save file to SD card
+
+	ld		sp,ix
+	pop		ix
+	ret
 	
 			SEGMENT DATA
-hexload_address		DEFB	3	; 24bit address
-hexload_error		DEFB	1	; error counter				
+hexload_address		DS		3	; 24bit address
+hexload_error		DS		1	; error counter
+firstwrite			DS		1	; boolean
+_startaddress		DS		3	; first address written to
+_endaddress		DS		3	; last address written to

@@ -2,7 +2,7 @@
 echo "Removing old patch directory"
 rm -rf agon-vdp-patched
 echo "Git clone Quark VPD"
-git clone https://github.com/breakintoprogram/agon-vdp.git
+git clone  --branch=v1.02 https://github.com/breakintoprogram/agon-vdp.git
 echo "Renaming directory"
 mv agon-vdp agon-vdp-patched
 mkdir agon-vdp-patched/video

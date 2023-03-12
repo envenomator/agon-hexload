@@ -7,7 +7,7 @@
 #define DEF_LOAD_ADDRESS 0x040000
 #define DEF_U_BYTE  ((DEF_LOAD_ADDRESS >> 16) & 0xFF)
 
-#include <arduino.h>
+
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -81,7 +81,7 @@ void echo_checksum(uint8_t hxchecksum, uint8_t ez80checksum)
 }
 
 void sendFakeCursorPosition() {
-	byte packet[] = {
+	uint8_t packet[] = {
 		1,
 		1,
 	};

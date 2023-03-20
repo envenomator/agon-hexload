@@ -26,8 +26,8 @@ DEFINE __len_bss = length of BSS
  ".\uart.obj", \
  ".\hxload.obj", \
  ".\vdp.obj", \
- "C:\ZiLOG\ZDSII_eZ80Acclaim!_5.3.4\lib\std\chelpD.lib", \
- "C:\ZiLOG\ZDSII_eZ80Acclaim!_5.3.4\lib\std\crtD.lib", \
- "C:\ZiLOG\ZDSII_eZ80Acclaim!_5.3.4\lib\std\crtSD.lib", \
- "C:\ZiLOG\ZDSII_eZ80Acclaim!_5.3.4\lib\std\nokernelD.lib", \
- "C:\ZiLOG\ZDSII_eZ80Acclaim!_5.3.4\lib\zilog\zsldevinitdummy.obj"
+ "C:\ZiLOG\ZDSII_eZ80Acclaim!_5.3.5\lib\std\chelpD.lib", \
+ "C:\ZiLOG\ZDSII_eZ80Acclaim!_5.3.5\lib\std\crtD.lib", \
+ "C:\ZiLOG\ZDSII_eZ80Acclaim!_5.3.5\lib\std\crtSD.lib", \
+ "C:\ZiLOG\ZDSII_eZ80Acclaim!_5.3.5\lib\std\nokernelD.lib", \
+ "C:\ZiLOG\ZDSII_eZ80Acclaim!_5.3.5\lib\zilog\zsldevinitdummy.obj"

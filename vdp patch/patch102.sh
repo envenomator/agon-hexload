@@ -22,3 +22,4 @@ cd agon-vdp-patched
 mv $(ls --ignore video) video
 cd ..
 echo "Patch complete"
+

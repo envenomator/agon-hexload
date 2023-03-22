@@ -49,14 +49,15 @@ _getch:
 	ld a, mos_sysvars			; MOS Call for mos_sysvars
 	rst.lil 08h					; returns pointer to sysvars in ixu
 _getch0:
-	ld a, (ix+sysvar_keycode)	; get current keycode
+	ld a, mos_getkey
+	ld a, (ix+sysvar_keyascii)	; get current keycode
 	or a,a
 	jr z, _getch0				; wait for keypress
 	
-	push af						; debounce key, reload keycode with 0
-	xor a
-	ld (ix+sysvar_keycode),a
-	pop af
+	;push af						; debounce key, reload keycode with 0
+	;xor a
+	;ld (ix+sysvar_keyascii),a
+	;pop af
 	pop iy
 	ret
 

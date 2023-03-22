@@ -2,7 +2,7 @@
 ; Title:		AGON MOS - MOS hexload assembly code
 ; Author:		Jeroen Venema
 ; Created:		23/10/2022
-; Last Updated:	10/01/2023
+; Last Updated:	22/03/2023
 ;
 ; Modinfo:
 ; 23/10/2022:	Initial assembly code
@@ -10,6 +10,7 @@
 ; 26/11/2022:   Adapted as loadable command
 ; 10/01/2023:	Major modifications, include new uart code
 ; 12/01/2023:	Release 1.0, cleanup
+; 12/01/2023:	Removed getTransparentByte, created getkey to accomodate MOS API changes
 
 	.include "mos_api.inc"
 
@@ -20,7 +21,6 @@
 			XREF	_uart1_getch
 			XDEF	_hxload_uart1
 			XDEF	_hxload_vdp
-			XDEF	_getTransparentByte
 			XDEF	_startaddress
 			XDEF	_endaddress
 			XDEF	_mos_save
@@ -38,8 +38,6 @@ _hxload_uart1:
 			LD		A, 1
 			LD		(firstwrite),A			; firstwrite = true	
 
-			;LD		A,LOAD_HLU_DEFAULT		; default upper byte load address 0x040000 in HLU
-			;LD		(hexload_address+2),A	; in case record 04 goes missing
 hxline:
 			CALL	_uart1_getch
 			CP		':'
@@ -132,46 +130,10 @@ getnibble:
 			AND		11011111b				; toUpper()
 			RET								; leave any error character in input, checksum will catch it later
 
-; receive a single keycode/keymods packet from the VDU
-; keycode can't be 0x00 - so this is escaped with keymods code 0x01
-; return transparent byte in a
-_getTransparentByte:
-	push iy
-	push ix
-
-	call getSysvars
-	call getTransparentByte
-	
-	pop ix
-	pop iy
-	ret
-
 ; get pointer to sysvars in ixu
 getSysvars:
 	ld a, mos_sysvars		; MOS call for mos_sysvars
 	rst.lil 08h				; returns pointer to sysvars in ixu
-	ret
-
-; call here when ixu has been set previously for performance
-getTransparentByte:
-	ld a, (ix+sysvar_keycode)
-	or a
-	jr z, getTransparentByte
-	ld c,a
-	xor a				; acknowledge receipt of key / debounce key
-	ld (ix+sysvar_keycode),a
-	ld a,c
-
-	cp a,01h			; check for escape code 0x01
-	jr nz, getbyte_done ; no escape code received
-	ld c,a				; save received byte
-	ld a,(ix+sysvar_keymods)		; is byte escaped with >0 in _keymods?
-	or a
-	jr z, getbyte_nesc  ; not escaped: normal transmission of 0x01
-	ld c,0				; escaped 0x01 => 0x00 meant
-getbyte_nesc:
-	ld a,c				; restore to a
-getbyte_done:
 	ret
 
 ; hxload_vdp received records from the VDP
@@ -184,7 +146,6 @@ getbyte_done:
 ; 0     - N-1 - bytes of data
 ; 
 ; Last record sent has N == 0, but will send address bytes, no data bytes
-
 _hxload_vdp:
 	push	de
 	push	bc
@@ -192,27 +153,28 @@ _hxload_vdp:
 	ld		a, 1
 	ld		(firstwrite),a			; firstwrite = true	
 	call	getSysvars				; returns pointer to sysvars in ixu
+
 blockloop:
 	ld		d,0						; reset checksum
-	call	getTransparentByte		; ask for start byte
+	call	getkey					; ask for start byte
 	or		a
 	jr		z, rbdone				; end of transmission received
 
 	add		a,d
 	ld		d,a
-	call	getTransparentByte		; ask for byte HLU
+	call	getkey					; ask for byte HLU
 	ld		(hexload_address+2),a	; store
 	add		a,d
 	ld		d,a
-	call	getTransparentByte		; ask for byte H
+	call	getkey					; ask for byte H
 	ld		(hexload_address+1),a	; store
 	add		a,d
 	ld		d,a
-	call	getTransparentByte		; ask for byte L
+	call	getkey					; ask for byte L
 	ld		(hexload_address),a		; store
 	add		a,d
 	ld		d,a
-	call	getTransparentByte		; ask for number of bytes to receive
+	call	getkey					; ask for number of bytes to receive
 	ld		b,a						; loop counter
 	add		a,d
 	ld		d,a
@@ -226,7 +188,7 @@ blockloop:
 	ld		(firstwrite),a
 	ld		(_startaddress),hl		; store first address
 $$:
-	call	getTransparentByte		; receive each byte in a
+	call	getkey		; receive each byte in a
 	ld		(hl),a					; store byte in memory
 	add		a,d
 	ld		d,a
@@ -243,6 +205,21 @@ rbdone:
 	pop bc
 	pop de
 	ret
+
+; get a key from one of the sysvars
+; IXU needs to have been set previously
+getkey:		PUSH	HL
+			PUSH	DE
+			LD	HL, IX
+			LD	DE, sysvar_vkeycount
+			ADD HL, DE			; HL now holds pointer to sysvar_vkeycount
+			LD	A, (HL)			; Wait for a change
+$$:			CP	(HL)
+			JR	Z, $B
+			POP DE
+			POP	HL 
+			LD	A, (ix+sysvar_keyascii)		; Get the key code
+			RET
 
 _mos_del:
 	push	ix
@@ -277,4 +254,4 @@ hexload_address		DS		3	; 24bit address
 hexload_error		DS		1	; error counter
 firstwrite			DS		1	; boolean
 _startaddress		DS		3	; first address written to
-_endaddress		DS		3	; last address written to
+_endaddress			DS		3	; last address written to

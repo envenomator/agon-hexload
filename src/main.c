@@ -32,7 +32,7 @@ extern char mos102_fingerprint; // needs to be extern to C, in assembly DB with 
 
 // external assembly routines
 extern CHAR		hxload_uart1(void);
-extern void		hxload_vdp(void);
+extern VOID		hxload_vdp(void);
 extern UINT8	mos_save(char *filename, UINT24 address, UINT24 nbytes);
 extern UINT8	mos_del(char *filename);
 // external variables
@@ -52,13 +52,14 @@ void write_file(char *filename) {
 }
 
 void handle_hexload_vdp(void)
-{
+{	
 	// First we need to test the VDP version in use
 	printf("\r");	// set the cursor to X:0, Y unknown, doesn't matter
 	// No local output, the VDP will handle this
 	// set vdu 23/28 to start HEXLOAD code at VDU
 	putch(23);
 	putch(28);
+	
 	
 	// A regular VDP will have the cursor at X:0, the patched version will send X:1
 	if(vdp_cursorGetXpos() != 1)
@@ -67,7 +68,9 @@ void handle_hexload_vdp(void)
 		return;
 	}
 	// We can't transmit any text during bytestream reception, so the VDU handles this remotely
-	hxload_vdp();					
+	hxload_vdp();
+
+	//printf("Receive %d\r\n", hxload_vdp());					
 }
 
 void handle_hexload_uart1(UINT24 baudrate)

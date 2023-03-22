@@ -69,8 +69,6 @@ void handle_hexload_vdp(void)
 	}
 	// We can't transmit any text during bytestream reception, so the VDU handles this remotely
 	hxload_vdp();
-
-	//printf("Receive %d\r\n", hxload_vdp());					
 }
 
 void handle_hexload_uart1(UINT24 baudrate)

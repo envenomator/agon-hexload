@@ -22,28 +22,11 @@ extern uint8_t readByte();
 
 void ez80SendByte(uint8_t b)
 {
-  uint8_t packet[2] = {0,0};
-
-  switch(b)
-  {
-    case 0: // escape with 0x01/0x02 - meaning 0x00
-      packet[0] = 1;
-      packet[1] = 1;
-      send_packet(PACKET_KEYCODE, sizeof packet, packet);                       
-      break;
-    case 1: // escape with 0x01/0x01 - meaning 0x01
-      packet[0] = 1;
-      packet[1] = 0;
-      send_packet(PACKET_KEYCODE, sizeof packet, packet);                       
-      break;
-    default:
-      packet[0] = b;
-      send_packet(PACKET_KEYCODE, sizeof packet, packet);                           
-      break;
-  }
+  uint8_t packet[] = {b,0};
+  send_packet(PACKET_KEYCODE, sizeof packet, packet);                       
 }
 
-// Receive a single Nibble fro the incoming Intel Hex data
+// Receive a single Nibble from the incoming Intel Hex data
 uint8_t getHxNibble(void)
 {
   uint8_t c ,val;
@@ -83,7 +66,7 @@ void echo_checksum(uint8_t hxchecksum, uint8_t ez80checksum)
 void sendFakeCursorPosition() {
 	uint8_t packet[] = {
 		1,
-		1,
+		1
 	};
 	send_packet(PACKET_CURSOR, sizeof packet, packet);	
 }
@@ -156,6 +139,7 @@ void vdu_sys_hexload(void)
         echo_checksum(hxchecksum,ez80checksum);
         break;
       case 1: // end of file record
+        getHxByte();
         ez80SendByte(0);       // end transmission
         done = true;
         break;

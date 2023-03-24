@@ -23,8 +23,6 @@
 			XDEF	_hxload_vdp
 			XDEF	_startaddress
 			XDEF	_endaddress
-			XDEF	_mos_save
-			XDEF	_mos_del
 			
 LOAD_HLU_DEFAULT	.EQU	04h		; 0x040000 default load address
 
@@ -157,24 +155,40 @@ _hxload_vdp:
 blockloop:
 	ld		d,0						; reset checksum
 	call	getkey					; ask for start byte
+	;push	af
+	rst.lil 10h						; send ack
+	;pop		af
 	or		a
 	jr		z, rbdone				; end of transmission received
 
 	add		a,d
 	ld		d,a
 	call	getkey					; ask for byte HLU
+	;push	af
+	rst.lil 10h						; send ack
+	;pop		af
 	ld		(hexload_address+2),a	; store
 	add		a,d
 	ld		d,a
 	call	getkey					; ask for byte H
+	;push	af
+	rst.lil 10h						; send ack
+	;pop		af
 	ld		(hexload_address+1),a	; store
 	add		a,d
 	ld		d,a
 	call	getkey					; ask for byte L
+	;push	af
+	rst.lil 10h						; send ack
+	;pop		af
 	ld		(hexload_address),a		; store
 	add		a,d
 	ld		d,a
+	
 	call	getkey					; ask for number of bytes to receive
+	;push	af
+	rst.lil 10h						; send ack
+	;pop		af
 	ld		b,a						; loop counter
 	add		a,d
 	ld		d,a
@@ -221,34 +235,6 @@ $$:			CP	(HL)
 			LD	A, (ix+sysvar_keyascii)		; Get the key code
 			RET
 
-_mos_del:
-	push	ix
-	ld 		ix,0
-	add 	ix, sp
-
-	ld 		hl, (ix+6)	; filename address (zero terminated)
-	ld a,	mos_del
-	rst.lil	08h			; save file to SD card
-
-	ld		sp,ix
-	pop		ix
-	ret
-	
-_mos_save:
-	push	ix
-	ld 		ix,0
-	add 	ix, sp
-
-	ld 		hl, (ix+6)	; filename address (zero terminated)
-	ld		de, (ix+9)	; address to save from
-	ld		bc, (ix+12)	; number of bytes to save
-	ld a,	mos_save
-	rst.lil	08h			; save file to SD card
-
-	ld		sp,ix
-	pop		ix
-	ret
-	
 			SEGMENT DATA
 hexload_address		DS		3	; 24bit address
 hexload_error		DS		1	; error counter

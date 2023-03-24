@@ -28,7 +28,7 @@
 
 typedef void * rom_set_vector(unsigned int vector, void(*handler)(void));
 
-extern char mos102_fingerprint; // needs to be extern to C, in assembly DB with a label, or the ZDS C compiler will put it in ROM space
+extern char mos102_setvector_fingerprint; // needs to be extern to C, in assembly DB with a label, or the ZDS C compiler will put it in ROM space
 
 // external assembly routines
 extern CHAR		hxload_uart1(void);
@@ -40,6 +40,10 @@ extern volatile UINT24 startaddress;
 extern volatile UINT24 endaddress;
 
 int errno; // needed by stdlib
+
+UINT16 tester(void) {
+	return 16;
+}
 
 void write_file(char *filename) {
 	if(filename) {
@@ -71,6 +75,7 @@ void handle_hexload_vdp(void)
 	hxload_vdp();
 }
 
+
 void handle_hexload_uart1(UINT24 baudrate)
 {
 	CHAR c;
@@ -87,7 +92,7 @@ void handle_hexload_uart1(UINT24 baudrate)
 	
 	// Check for MOS 1.02 first
 	fpptr = (char *)MOS102_SETVECTOR;
-	chkptr = &mos102_fingerprint;
+	chkptr = &mos102_setvector_fingerprint;
 	if(memcmp(fpptr,chkptr,MOS102_FP_SIZE) != 0) // needs exact fingerprint match
 	{
 		printf("Incompatible MOS version\r\n");

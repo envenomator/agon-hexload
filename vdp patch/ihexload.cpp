@@ -7,7 +7,6 @@
 #define DEF_LOAD_ADDRESS 0x040000
 #define DEF_U_BYTE  ((DEF_LOAD_ADDRESS >> 16) & 0xFF)
 
-
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -20,10 +19,11 @@ extern void send_packet(uint8_t code, uint8_t len, uint8_t data[]);
 extern void printFmt(const char *format, ...);
 extern uint8_t readByte();
 
-void ez80SendByte(uint8_t b)
+void ez80SendByte(uint8_t b, bool waitack)
 {
   uint8_t packet[] = {b,0};
-  send_packet(PACKET_KEYCODE, sizeof packet, packet);                       
+  send_packet(PACKET_KEYCODE, sizeof packet, packet);                    
+  if(waitack) readByte();
 }
 
 // Receive a single Nibble from the incoming Intel Hex data
@@ -89,9 +89,10 @@ void vdu_sys_hexload(void)
   // Regular MOS returns the correct position, but we intercept during the hexload call and reply with X=1,Y=1
   readByte(); // 23
   readByte(); //  0
-  readByte(); //  2 -> VDU (23,0,2) send cursor position
+  readByte(); // 0x82 -> VDU (23,0,130) send cursor position
   // The regular VDP will send X=0, The patched VDP reply differently, so the client can tell if the VDP is patched
   sendFakeCursorPosition();
+  //sendFalseModeInformation();
   delay(5); // allow the ez80 time to process the interrupt and update the X/Y position variables
 
   printFmt("Receiving Intel HEX records - VDP:115200 8N1\r\n\r\n");
@@ -121,15 +122,16 @@ void vdu_sys_hexload(void)
           printFmt("\r\nAddress 0x%02x0000 (default)\r\n", DEF_U_BYTE);
           defaultaddress = false;
         }
-        ez80SendByte(1);      // ez80 data-package start indicator
-        ez80SendByte(u);      // transmit full address in each package  
-        ez80SendByte(h);
-        ez80SendByte(l);
-        ez80SendByte(count);  // number of bytes to send in this package
+        ez80SendByte(1, true);      // ez80 data-package start indicator
+        ez80SendByte(u, true);      // transmit full address in each package  
+        ez80SendByte(h, true);
+        ez80SendByte(l, true);
+
+        ez80SendByte(count, true);  // number of bytes to send in this package
         while(count--)
         {
           data = getHxByte();
-          ez80SendByte(data);
+          ez80SendByte(data, false);
           hxchecksum += data;   // update hxchecksum
           ez80checksum += data; // update checksum from bytes sent to the ez80
         }
@@ -140,7 +142,7 @@ void vdu_sys_hexload(void)
         break;
       case 1: // end of file record
         getHxByte();
-        ez80SendByte(0);       // end transmission
+        ez80SendByte(0, true);       // end transmission
         done = true;
         break;
       case 4: // extended lineair address record, only update U byte for next transmission to the ez80

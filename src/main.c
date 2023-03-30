@@ -12,10 +12,9 @@
  * 11/01/2023:		Release 0.9
  * 23/02/2023:		Bugfix - DEFB used, should have been DS at end of hxload.asm
  *                  Option to save as file to SD card
+ * 30/03/2023:		Preparation for MOS 1.03
  */
 
-#define MOS102_SETVECTOR	   0x000956		// as assembled in MOS 1.02, until set_vector becomes a API call in a later MOS version
-#define MOS102_FP_SIZE			     26		// 26 bytes to check from the SET_VECTOR address, kludgy, but works for now
 #define DEFAULT_BAUDRATE 		 384000
 
 #include <stdio.h>
@@ -23,27 +22,19 @@
 #include <string.h>
 #include <stdlib.h>
 #include "mos-interface.h"
-#include "uart.h"
 #include "vdp.h"
-
-typedef void * rom_set_vector(unsigned int vector, void(*handler)(void));
-
-extern char mos102_setvector_fingerprint; // needs to be extern to C, in assembly DB with a label, or the ZDS C compiler will put it in ROM space
+#include "uart.h"
 
 // external assembly routines
-extern CHAR		hxload_uart1(void);
-extern VOID		hxload_vdp(void);
-extern UINT8	mos_save(char *filename, UINT24 address, UINT24 nbytes);
-extern UINT8	mos_del(char *filename);
+extern VOID	hxload_vdp(void);
+extern CHAR	hxload_uart1(void);
+extern VOID	uart1_handler(void);
+
 // external variables
 extern volatile UINT24 startaddress;
 extern volatile UINT24 endaddress;
 
 int errno; // needed by stdlib
-
-UINT16 tester(void) {
-	return 16;
-}
 
 void write_file(char *filename) {
 	if(filename) {
@@ -78,6 +69,31 @@ void handle_hexload_vdp(void)
 
 void handle_hexload_uart1(UINT24 baudrate)
 {
+	char c;
+	void *oldvector;
+	uartsettings uart1;
+	
+	uart1.baudRate = baudrate;
+	uart1.dataBits = 8;
+	uart1.stopBits = 1;
+	uart1.parity = PAR_NOPARITY;
+	uart1.flowcontrol = 0;
+	uart1.ier = UART_IER_RECEIVEINT;
+
+	oldvector = mos_setintvector(UART1_IVECT, uart1_handler);
+	mos_uopen(&uart1);
+	// Only feedback during transfer - we have no time to output to VDP or even UART1 between received bytes
+	printf("Receiving Intel HEX records - UART1:%d 8N1\r\n",baudrate);
+	c = hxload_uart1();
+	if(c == 0) printf("OK\r\n");
+	else printf("%d error(s)\r\n",c);
+
+	// close UART1, so no more interrupts and default port pins Rx/Tx
+	mos_uclose();
+	// disable UART1 interrupt, set previous vector
+	mos_setintvector(UART1_IVECT, oldvector);
+
+	/*
 	CHAR c;
 	CHAR *fpptr,*chkptr;
 	void *oldvector;
@@ -114,6 +130,8 @@ void handle_hexload_uart1(UINT24 baudrate)
 	close_UART1();
 	// disable UART1 interrupt, set previous vector (__default_mi_handler in MOS ROM, might change on every revision)
 	set_vector(UART1_IVECT, oldvector);
+	*/
+
 }
 
 int main(int argc, char * argv[]) {

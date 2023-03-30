@@ -18,7 +18,6 @@
 			SEGMENT CODE
 			
 			XREF	__putch
-			XREF	_uart1_getch
 			XDEF	_hxload_uart1
 			XDEF	_hxload_vdp
 			XDEF	_startaddress
@@ -37,7 +36,9 @@ _hxload_uart1:
 			LD		(firstwrite),A			; firstwrite = true	
 
 hxline:
-			CALL	_uart1_getch
+			LD		A, mos_ugetc
+			RST.LIL	08h
+			JR		NC, uart1closed			; UART1 closed
 			CP		':'
 			JR		NZ, hxline				; ignore everything except ':' to start the line
 			LD		E,0						; reset the checksum byte
@@ -118,7 +119,8 @@ getbyte:
 			RET
 
 getnibble:
-			CALL	_uart1_getch
+			LD		A, mos_ugetc
+			RST.LIL	08h
 			SUB		'0'
 			CP		10
 			RET		C						; A<10
@@ -127,6 +129,12 @@ getnibble:
 			RET		C						; A<'G'
 			AND		11011111b				; toUpper()
 			RET								; leave any error character in input, checksum will catch it later
+
+uart1closed:
+			LD		A,(hexload_error)
+			INC		A
+			LD		(hexload_error),A		; increment error counter
+			JR		hexendfile
 
 ; get pointer to sysvars in ixu
 getSysvars:

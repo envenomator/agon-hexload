@@ -17,13 +17,13 @@
 extern void vdu(uint8_t c);
 extern void send_packet(uint8_t code, uint8_t len, uint8_t data[]);
 extern void printFmt(const char *format, ...);
-extern uint8_t readByte();
+extern uint8_t readByte_b();
 
 void ez80SendByte(uint8_t b, bool waitack)
 {
   uint8_t packet[] = {b,0};
   send_packet(PACKET_KEYCODE, sizeof packet, packet);                    
-  if(waitack) readByte();
+  if(waitack) readByte_b();
 }
 
 // Receive a single Nibble from the incoming Intel Hex data
@@ -87,9 +87,9 @@ void vdu_sys_hexload(void)
   // The client has previously sent a CR/LF command, setting cursor X to 0
   // It then sends VDU 23,0,2 - send cursor position
   // Regular MOS returns the correct position, but we intercept during the hexload call and reply with X=1,Y=1
-  readByte(); // 23
-  readByte(); //  0
-  readByte(); // 0x82 -> VDU (23,0,130) send cursor position
+  readByte_b(); // 23
+  readByte_b(); //  0
+  readByte_b(); // 0x82 -> VDU (23,0,130) send cursor position
   // The regular VDP will send X=0, The patched VDP reply differently, so the client can tell if the VDP is patched
   sendFakeCursorPosition();
   //sendFalseModeInformation();
@@ -135,7 +135,7 @@ void vdu_sys_hexload(void)
           hxchecksum += data;   // update hxchecksum
           ez80checksum += data; // update checksum from bytes sent to the ez80
         }
-        ez80checksum += readByte(); // get feedback from ez80 - a 2s complement to the sum of all received bytes, total 0 if no errors      
+        ez80checksum += readByte_b(); // get feedback from ez80 - a 2s complement to the sum of all received bytes, total 0 if no errors      
         hxchecksum += getHxByte();  // finalize checksum with actual checksum byte in record, total 0 if no errors
         if(hxchecksum || ez80checksum) errors++;
         echo_checksum(hxchecksum,ez80checksum);

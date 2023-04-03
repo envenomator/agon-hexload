@@ -120,7 +120,8 @@ void handle_hexload_uart1(UINT24 baudrate)
 
 	fpptr = (char *)MOS103_SETVECTOR;
 
-	oldvector = set_vector(UART1_IVECT, uart1_handler);
+	oldvector = mos_setintvector(UART1_IVECT, uart1_handler);
+	//oldvector = set_vector(UART1_IVECT, uart1_handler);
 	
 	//oldvector = mos_setintvector(UART1_IVECT, uart1_handler);
 	init_UART1();										// set the Rx/Tx port pins
@@ -136,8 +137,8 @@ void handle_hexload_uart1(UINT24 baudrate)
 	// close UART1, so no more interrupts and default port pins Rx/Tx
 	close_UART1();
 	// disable UART1 interrupt, set previous vector (__default_mi_handler in MOS ROM, might change on every revision)
-	//mos_setintvector(UART1_IVECT, oldvector);
-	set_vector(UART1_IVECT, oldvector);
+	mos_setintvector(UART1_IVECT, oldvector);
+	//set_vector(UART1_IVECT, oldvector);
 	
 	//printf("Vector set\r\n");
 }

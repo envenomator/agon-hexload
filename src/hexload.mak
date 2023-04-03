@@ -190,7 +190,9 @@ $(WORKDIR_ESCSPACE)\main.obj :  \
             $(INCLUDE_ESCSPACE)\zilog\uart.h  \
             $(INCLUDE_ESCSPACE)\zilog\uartdefs.h  \
             $(PRJDIR_ESCSPACE)\mos-interface.h  \
-            $(PRJDIR_ESCSPACE)\uart.h
+            $(PRJDIR_ESCSPACE)\stdint.h  \
+            $(PRJDIR_ESCSPACE)\uart.h  \
+            $(PRJDIR_ESCSPACE)\vdp.h
 	 $(CC) $(CFLAGS) "$(PRJDIR)\main.c"
 
 $(WORKDIR_ESCSPACE)\mos-interface.obj :  \

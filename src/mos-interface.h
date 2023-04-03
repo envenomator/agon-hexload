@@ -118,7 +118,8 @@ extern void   mos_getError(UINT8 code, char *buffer, UINT24 bufferlength);
 extern UINT8  mos_oscli(char *command, char **argv, UINT24 argc);
 extern UINT8  mos_getrtc(char *buffer);
 extern void   mos_setrtc(UINT8 *timedata);
-extern void*  mos_setintvector(UINT8 vector, void(*handler)(void));
+//extern void*  mos_setintvector(UINT8 vector, void(*handler)(void));
+extern void*  mos_setintvector(UINT8 vector, void*);
 extern UINT8  mos_uopen(uartsettings *settings);
 extern void   mos_uclose(void);
 extern int    mos_ugetc(void);                      // 0-255 valid character - >255 error

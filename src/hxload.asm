@@ -18,6 +18,7 @@
 			SEGMENT CODE
 			
 			XREF	__putch
+			XREF	_uart1_getch
 			XDEF	_hxload_uart1
 			XDEF	_hxload_vdp
 			XDEF	_startaddress
@@ -36,9 +37,7 @@ _hxload_uart1:
 			LD		(firstwrite),A			; firstwrite = true	
 
 hxline:
-			LD		A, mos_ugetc
-			RST.LIL	08h
-			JR		NC, uart1closed			; UART1 closed
+			CALL	_uart1_getch
 			CP		':'
 			JR		NZ, hxline				; ignore everything except ':' to start the line
 			LD		E,0						; reset the checksum byte
@@ -119,8 +118,7 @@ getbyte:
 			RET
 
 getnibble:
-			LD		A, mos_ugetc
-			RST.LIL	08h
+			CALL	_uart1_getch
 			SUB		'0'
 			CP		10
 			RET		C						; A<10

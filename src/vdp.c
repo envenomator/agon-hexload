@@ -3,7 +3,7 @@
 #include "mos-interface.h"
 
 // Generic functions
-
+/*
 void write16bit(UINT16 w)
 {
 	putch(w & 0xFF); // write LSB
@@ -396,7 +396,7 @@ void vdp_spriteRefresh(void)
 	putch(15);	// refresh all sprites
 	return;
 }
-
+*/
 UINT8 vdp_cursorGetXpos(void)
 {
 	unsigned int delay;
@@ -410,7 +410,7 @@ UINT8 vdp_cursorGetXpos(void)
 	return(getsysvar_cursorX());
 
 }
-
+/*
 UINT8 vdp_cursorGetYpos(void)
 {
 	unsigned int delay;
@@ -468,3 +468,4 @@ void vdp_scroll(unsigned char extent, unsigned char direction, unsigned char spe
 	putch(direction);
 	putch(speed);
 }
+*/

@@ -25,6 +25,8 @@
 #include "vdp.h"
 #include "uart.h"
 
+#define MOS103_SETVECTOR	   0x000B1A
+
 // external assembly routines
 extern VOID	hxload_vdp(void);
 extern CHAR	hxload_uart1(void);
@@ -35,6 +37,8 @@ extern volatile UINT24 startaddress;
 extern volatile UINT24 endaddress;
 
 int errno; // needed by stdlib
+
+typedef void * rom_set_vector(unsigned int vector, void(*handler)(void));
 
 void write_file(char *filename) {
 	if(filename) {
@@ -69,7 +73,9 @@ void handle_hexload_vdp(void)
 
 void handle_hexload_uart1(UINT24 baudrate)
 {
+	/* MOS 1.03 uart doesn't work
 	char c;
+	int t;
 	void *oldvector;
 	uartsettings uart1;
 	
@@ -84,38 +90,39 @@ void handle_hexload_uart1(UINT24 baudrate)
 	mos_uopen(&uart1);
 	// Only feedback during transfer - we have no time to output to VDP or even UART1 between received bytes
 	printf("Receiving Intel HEX records - UART1:%d 8N1\r\n",baudrate);
-	c = hxload_uart1();
-	if(c == 0) printf("OK\r\n");
-	else printf("%d error(s)\r\n",c);
+	//c = hxload_uart1();
+	//if(c == 0) printf("OK\r\n");
+	//else printf("%d error(s)\r\n",c);
 
+	while(1) {
+		t = mos_ugetc();
+		if(t > 255) putch('x');
+		else putch(t);
+	}
 	// close UART1, so no more interrupts and default port pins Rx/Tx
 	mos_uclose();
 	// disable UART1 interrupt, set previous vector
 	mos_setintvector(UART1_IVECT, oldvector);
 
-	/*
+	*/
+	
 	CHAR c;
 	CHAR *fpptr,*chkptr;
 	void *oldvector;
 	
-	rom_set_vector *set_vector = (rom_set_vector *)MOS102_SETVECTOR;	
+	rom_set_vector *set_vector = (rom_set_vector *)MOS103_SETVECTOR;	
 	UART 	pUART;
 
 	pUART.baudRate = baudrate;
 	pUART.dataBits = 8;
 	pUART.stopBits = 1;
 	pUART.parity = PAR_NOPARITY;
+
+	fpptr = (char *)MOS103_SETVECTOR;
+
+	oldvector = set_vector(UART1_IVECT, uart1_handler);
 	
-	// Check for MOS 1.02 first
-	fpptr = (char *)MOS102_SETVECTOR;
-	chkptr = &mos102_setvector_fingerprint;
-	if(memcmp(fpptr,chkptr,MOS102_FP_SIZE) != 0) // needs exact fingerprint match
-	{
-		printf("Incompatible MOS version\r\n");
-		return;
-	}
-	
-	oldvector = set_vector(UART1_IVECT, uart1_handler);	// register interrupt handler for UART1
+	//oldvector = mos_setintvector(UART1_IVECT, uart1_handler);
 	init_UART1();										// set the Rx/Tx port pins
 	open_UART1(&pUART);									// Open the UART, set interrupt 
 
@@ -129,9 +136,10 @@ void handle_hexload_uart1(UINT24 baudrate)
 	// close UART1, so no more interrupts and default port pins Rx/Tx
 	close_UART1();
 	// disable UART1 interrupt, set previous vector (__default_mi_handler in MOS ROM, might change on every revision)
+	//mos_setintvector(UART1_IVECT, oldvector);
 	set_vector(UART1_IVECT, oldvector);
-	*/
-
+	
+	//printf("Vector set\r\n");
 }
 
 int main(int argc, char * argv[]) {

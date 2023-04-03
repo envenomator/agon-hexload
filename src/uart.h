@@ -9,6 +9,7 @@
 #define UART_H
 
 #include <gpio.h>
+#include "mos-interface.h"
 
 #define MASTERCLOCK				18432000	        	//!< The default system clock speed for eZ80F92.
 #define CLOCK_DIVISOR_16		16			        	//!< The default clock divisor 
@@ -146,12 +147,14 @@
 
 // UART settings for open_UART1
 //
-typedef struct {
-   INT24 baudRate ;				//!< The baudrate to be used.
-   BYTE dataBits ;				//!< The number of databits per character to be used.
-   BYTE stopBits ;				//!< The number of stopbits to be used.
-   BYTE parity ;				//!< The parity bit option to be used.
-} UART ;
+//typedef struct {
+//   INT24 baudRate ;				//!< The baudrate to be used.
+//   BYTE dataBits ;				//!< The number of databits per character to be used.
+//   BYTE stopBits ;				//!< The number of stopbits to be used.
+//   BYTE parity ;				   //!< The parity bit option to be used.
+//   BYTE flowcontrol ;
+//   BYTE eir ;
+//} UART ;
 
 VOID init_UART1();
 UCHAR open_UART1(UART *pUART);

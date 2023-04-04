@@ -2,7 +2,7 @@
  * Title:			AGON Hexload code
  * Author:			Jeroen Venema
  * Created:			22/10/2022
- * Last Updated:	07/01/2023
+ * Last Updated:	04/04/2023
  * 
  * Modinfo:
  * 22/10/2022:		Initial version MOS patch
@@ -13,6 +13,7 @@
  * 23/02/2023:		Bugfix - DEFB used, should have been DS at end of hxload.asm
  *                  Option to save as file to SD card
  * 30/03/2023:		Preparation for MOS 1.03
+ * 04/04/2023:		Making use of mos_setintvector, kept own UART1 handler for speed
  */
 
 #define DEFAULT_BAUDRATE 		 384000
@@ -22,10 +23,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include "mos-interface.h"
-#include "vdp.h"
 #include "uart.h"
-
-#define MOS103_SETVECTOR	   0x000B1A
 
 // external assembly routines
 extern VOID	hxload_vdp(void);
@@ -35,6 +33,9 @@ extern VOID	uart1_handler(void);
 // external variables
 extern volatile UINT24 startaddress;
 extern volatile UINT24 endaddress;
+
+// single VDP function needed
+UINT8 vdp_cursorGetXpos(void);
 
 int errno; // needed by stdlib
 
@@ -75,8 +76,6 @@ void handle_hexload_uart1(UINT24 baudrate)
 {
 	CHAR c;
 	void *oldvector;
-	
-	rom_set_vector *set_vector = (rom_set_vector *)MOS103_SETVECTOR;	
 	UART 	pUART;
 
 	pUART.baudRate = baudrate;
@@ -84,23 +83,20 @@ void handle_hexload_uart1(UINT24 baudrate)
 	pUART.stopBits = 1;
 	pUART.parity = PAR_NOPARITY;
 	pUART.flowcontrol = 0;
-	pUART.eir = UART_IER_RECEIVEINT;
+	pUART.interrupts = UART_IER_RECEIVEINT;
 
 	oldvector = mos_setintvector(UART1_IVECT, uart1_handler);
 	
-	//init_UART1();										// set the Rx/Tx port pins
-	//open_UART1(&pUART);									// Open the UART, set interrupt 
-	mos_uopen(&pUART);
+	init_UART1();
+	open_UART1(&pUART);
 	// Only feedback during transfer - we have no time to output to VDP or even UART1 between received bytes
 	printf("Receiving Intel HEX records - UART1:%d 8N1\r\n",baudrate);
 	c = hxload_uart1();
-	
 	if(c == 0) printf("OK\r\n");
 	else printf("%d error(s)\r\n",c);
 
-	// close UART1, so no more interrupts and default port pins Rx/Tx
+	// close UART1, so no more interrupts will trigger before removal of handler
 	close_UART1();
-	//mos_uclose();
 	// disable UART1 interrupt, set previous vector (__default_mi_handler in MOS ROM, might change on every revision)
 	mos_setintvector(UART1_IVECT, oldvector);
 }
@@ -109,14 +105,8 @@ int main(int argc, char * argv[]) {
 	UINT24 baudrate = 0;
 	char *end;
 	char *filename = NULL;
-	
-	if(argc == 1)
-	{
-		printf("Usage: hexload <uart1 [baudrate]| vdp> [filename]\r\n");
-		return 0;
-	}
 
-	if(strcmp("uart1",argv[1]) == 0)
+	if((argc >= 2) && (strcmp("uart1",argv[1]) == 0))
 	{
 		if(argc >= 3) {
 			baudrate = strtol(argv[2], &end, 10);
@@ -139,8 +129,7 @@ int main(int argc, char * argv[]) {
 		return 0;
 	}
 
-	if(strcmp("vdp",argv[1]) == 0)
-	{
+	if((argc >= 2) && (strcmp("vdp",argv[1]) == 0)) {
 		if(argc > 3) {
 			printf("Too many arguments\r\n");
 			return 0;
@@ -150,5 +139,20 @@ int main(int argc, char * argv[]) {
 		write_file(filename);
 		return 0;
 	}			
+	printf("Usage: hexload <uart1 [baudrate]| vdp> [filename]\r\n");
 	return 0;
+}
+
+UINT8 vdp_cursorGetXpos(void)
+{
+	unsigned int delay;
+	
+	putch(23);	// VDP command
+	putch(0);	// VDP command
+	putch(0x82);	// Request cursor position
+	
+	delay = 255;
+	while(delay--);
+	return(getsysvar_cursorX());
+
 }

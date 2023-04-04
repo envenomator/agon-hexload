@@ -13,7 +13,7 @@ This utility provides two options:
 ![A single transfer over the VDP serial](https://github.com/envenomator/agon-hexload/blob/master/media/vdptransfer.png?raw=true)
 
 ## Installation
-Copy 'hexload.bin' to the \mos\ directory on the microSD card. If no such directory exists, create it first. This allows the usage of arguments to the utility and loading it using it's base name.
+Copy 'hexload.bin' and 'hexload.dll' to the \mos\ directory on the microSD card. If no such directory exists, create it first. This allows the usage of arguments to the utility and loading it using it's base name.
 
 The utility requires at least MOS version 1.02
 

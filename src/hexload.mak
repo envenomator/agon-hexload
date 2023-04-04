@@ -110,14 +110,6 @@ clean:
             $(RM) "$(WORKDIR)\hxload.lis"
 	@if exist "$(WORKDIR)\hxload.lst"  \
             $(RM) "$(WORKDIR)\hxload.lst"
-	@if exist "$(WORKDIR)\vdp.obj"  \
-            $(RM) "$(WORKDIR)\vdp.obj"
-	@if exist "$(WORKDIR)\vdp.lis"  \
-            $(RM) "$(WORKDIR)\vdp.lis"
-	@if exist "$(WORKDIR)\vdp.lst"  \
-            $(RM) "$(WORKDIR)\vdp.lst"
-	@if exist "$(WORKDIR)\vdp.src"  \
-            $(RM) "$(WORKDIR)\vdp.src"
 	@if exist "$(WORKDIR)\serial.obj"  \
             $(RM) "$(WORKDIR)\serial.obj"
 	@if exist "$(WORKDIR)\serial.lis"  \
@@ -143,8 +135,6 @@ relist:
 	$(AS) $(ASFLAGS) -relist:"C:\source\agon-hexload\src\Debug\hexload.map" \
             C:\source\agon-hexload\src\hxload.asm
 	$(AS) $(ASFLAGS) -relist:"C:\source\agon-hexload\src\Debug\hexload.map" \
-            C:\source\agon-hexload\src\Debug\vdp.src
-	$(AS) $(ASFLAGS) -relist:"C:\source\agon-hexload\src\Debug\hexload.map" \
             C:\source\agon-hexload\src\serial.asm
 	$(AS) $(ASFLAGS) -relist:"C:\source\agon-hexload\src\Debug\hexload.map" \
             C:\source\agon-hexload\src\Debug\uart.src
@@ -159,7 +149,6 @@ OBJS =  \
             $(WORKDIR_ESCSPACE)\main.obj  \
             $(WORKDIR_ESCSPACE)\mos-interface.obj  \
             $(WORKDIR_ESCSPACE)\hxload.obj  \
-            $(WORKDIR_ESCSPACE)\vdp.obj  \
             $(WORKDIR_ESCSPACE)\serial.obj  \
             $(WORKDIR_ESCSPACE)\uart.obj
 
@@ -190,9 +179,7 @@ $(WORKDIR_ESCSPACE)\main.obj :  \
             $(INCLUDE_ESCSPACE)\zilog\uart.h  \
             $(INCLUDE_ESCSPACE)\zilog\uartdefs.h  \
             $(PRJDIR_ESCSPACE)\mos-interface.h  \
-            $(PRJDIR_ESCSPACE)\stdint.h  \
-            $(PRJDIR_ESCSPACE)\uart.h  \
-            $(PRJDIR_ESCSPACE)\vdp.h
+            $(PRJDIR_ESCSPACE)\uart.h
 	 $(CC) $(CFLAGS) "$(PRJDIR)\main.c"
 
 $(WORKDIR_ESCSPACE)\mos-interface.obj :  \
@@ -205,26 +192,13 @@ $(WORKDIR_ESCSPACE)\hxload.obj :  \
             $(PRJDIR_ESCSPACE)\mos_api.inc
 	 $(AS) $(ASFLAGS) "$(PRJDIR)\hxload.asm"
 
-$(WORKDIR_ESCSPACE)\vdp.obj :  \
-            $(PRJDIR_ESCSPACE)\vdp.c  \
-            $(INCLUDE_ESCSPACE)\zilog\defines.h  \
-            $(PRJDIR_ESCSPACE)\mos-interface.h  \
-            $(PRJDIR_ESCSPACE)\stdint.h  \
-            $(PRJDIR_ESCSPACE)\vdp.h
-	 $(CC) $(CFLAGS) "$(PRJDIR)\vdp.c"
-
 $(WORKDIR_ESCSPACE)\serial.obj :  \
             $(PRJDIR_ESCSPACE)\serial.asm
 	 $(AS) $(ASFLAGS) "$(PRJDIR)\serial.asm"
 
 $(WORKDIR_ESCSPACE)\uart.obj :  \
             $(PRJDIR_ESCSPACE)\uart.c  \
-            $(INCLUDE_ESCSPACE)\std\Format.h  \
-            $(INCLUDE_ESCSPACE)\std\Stdarg.h  \
-            $(INCLUDE_ESCSPACE)\std\Stddef.h  \
-            $(INCLUDE_ESCSPACE)\std\Stdio.h  \
             $(INCLUDE_ESCSPACE)\zilog\cio.h  \
-            $(INCLUDE_ESCSPACE)\zilog\defines.h  \
             $(INCLUDE_ESCSPACE)\zilog\eZ80190.h  \
             $(INCLUDE_ESCSPACE)\zilog\eZ80F91.h  \
             $(INCLUDE_ESCSPACE)\zilog\eZ80F92.h  \

@@ -8,7 +8,6 @@
 <file filter-key="">.\mos-interface.asm</file>
 <file filter-key="">.\Hexload.linkcmd</file>
 <file filter-key="">.\hxload.asm</file>
-<file filter-key="">.\vdp.c</file>
 <file filter-key="">.\serial.asm</file>
 <file filter-key="">.\uart.c</file>
 </files>

@@ -11,15 +11,12 @@
  *
  * Mods:
  * 12/01/2023 - Added close_UART to disable interrupts to UART1
+ * 04/04/2023 - Removed all functions that have valid MOS API implementations
  */
  
-#include <stddef.h>
-#include <stdio.h>
 #include <eZ80.h>
-#include <defines.h>
-#include <gpio.h>
 #include "uart.h"
- 
+
 // Set the Line Control Register for data, stop and parity bits
 //
 #define SETREG_LCR1(data, stop, parity) (UART1_LCTL = ((BYTE)(((data)-(BYTE)5)&(BYTE)0x3)|(BYTE)((((stop)-(BYTE)0x1)&(BYTE)0x1)<<(BYTE)0x2)|(BYTE)((parity)<<(BYTE)0x3)))
@@ -52,29 +49,23 @@ UCHAR open_UART1(UART *pUART) {
 	UART1_BRG_L = (br & 0xFF) ;										//! Load divisor low
 	UART1_BRG_H = (CHAR)(( br & 0xFF00 ) >> 8) ;					//! Load divisor high
 	UART1_LCTL &= (~UART_LCTL_DLAB) ; 								//! Reset DLAB; dont disturb other bits
-	UART1_MCTL = 0x00 ;												//! Bring modem control register to reset value.
+	UART1_MCTL = pUART->flowcontrol;
 	UART1_FCTL = 0x07 ;												//! Disable hardware FIFOs.
-	UART1_IER = UART_IER_RECEIVEINT ;
+	UART1_IER = pUART->interrupts;
 	
 	SETREG_LCR1(pUART->dataBits, pUART->stopBits, pUART->parity);	//! Set the line status register.
-	
 	return UART_ERR_NONE ;
 }
 
-VOID close_UART1( VOID )
-{
+VOID close_UART1( VOID ) {
 	UART1_IER = 0 ;													//! Disable all UART1 interrupts.
 	UART1_LCTL = 0 ;												//! Bring line control register to reset value.
 	UART1_MCTL = 0x00 ;												//! Bring modem control register to reset value.
 	UART1_FCTL = 0 ;												//! Bring FIFO control register to reset value.
-
-	init_UART1();													// set port pins to original values
 	return ;
-
 }
 
 VOID uart1_puts(CHAR *str)
 {
 	while(*str)	uart1_putch(*str++);
 }
-

@@ -22,7 +22,7 @@ if not os.path.isfile(sys.argv[1]):
   sys.exit(f'Error: file \'{sys.argv[1]}\' not found')
 
 if len(sys.argv) == 2:
-  serialport = 'COM3'
+  serialport = 'COM11'
 
 if len(sys.argv) >= 3:
   serialport = sys.argv[2]

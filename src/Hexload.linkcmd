@@ -23,7 +23,6 @@ DEFINE __len_bss = length of BSS
  ".\main.obj", \
  ".\mos-interface.obj", \
  ".\hxload.obj", \
- ".\vdp.obj", \
  ".\serial.obj", \
  ".\uart.obj", \
  "C:\ZiLOG\ZDSII_eZ80Acclaim!_5.3.5\lib\std\chelpD.lib", \

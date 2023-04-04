@@ -2,14 +2,13 @@
  * Title:			AGON - Loadable UART1 code
  * Author:			Jeroen Venema, original by Dean Belfeld
  * Created:			06/01/2023
- * Last Updated:	06/01/2023
+ * Last Updated:	06/04/2023
  */
 
 #ifndef UART_H
 #define UART_H
 
 #include <gpio.h>
-#include "mos-interface.h"
 
 #define MASTERCLOCK				18432000	        	//!< The default system clock speed for eZ80F92.
 #define CLOCK_DIVISOR_16		16			        	//!< The default clock divisor 
@@ -147,22 +146,22 @@
 
 // UART settings for open_UART1
 //
-//typedef struct {
-//   INT24 baudRate ;				//!< The baudrate to be used.
-//   BYTE dataBits ;				//!< The number of databits per character to be used.
-//   BYTE stopBits ;				//!< The number of stopbits to be used.
-//   BYTE parity ;				   //!< The parity bit option to be used.
-//   BYTE flowcontrol ;
-//   BYTE eir ;
-//} UART ;
+typedef struct {
+   INT24    baudRate ;				//!< The baudrate to be used.
+   BYTE     dataBits ;				//!< The number of databits per character to be used.
+   BYTE     stopBits ;				//!< The number of stopbits to be used.
+   BYTE     parity ;				   //!< The parity bit option to be used.
+   BYTE     flowcontrol ;
+   BYTE     interrupts;             // Registered interrupts
+} UART ;
 
-VOID init_UART1();
+VOID  init_UART1();
 UCHAR open_UART1(UART *pUART);
-VOID close_UART1( VOID );
+VOID  close_UART1( VOID );
+VOID  uart1_puts(CHAR *str);
 
-VOID uart1_puts(CHAR *str);
-extern void 	uart1_handler(void);
-extern CHAR		uart1_getch(void);
-extern void		uart1_putch(CHAR c);
+extern void 	uart1_handler(void); // serial.asm
+extern CHAR		uart1_getch(void);   // serial.asm
+extern void		uart1_putch(CHAR c); // serial.asm
 
 #endif UART_H

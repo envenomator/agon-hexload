@@ -17,7 +17,7 @@ sed -i 's/DBGSerial/Serial/g' agon-vdp-patched/video.ino
 sed -i 's/Serial.begin(500000, SERIAL_8N1, 3, 1);/Serial.begin(115200, SERIAL_8N1, 3, 1);/g' agon-vdp-patched/video.ino
 sed -i 's/#define SERIALKB\t\t0/#define SERIALKB\t\t1/g' agon-vdp-patched/video.ino
 sed -i 's/vdu_sys_sprites();.*$/vdu_sys_sprites\(\);\t\t\t\/\/ Sprite system control\n\t\t\t\tbreak;\n\t\t\tcase 0x1C:\t\t\t\t\t\t\/\/ HEXLOAD VDU 23,28\n\t\t\t\tvdu_sys_hexload\(\);/g' agon-vdp-patched/video.ino
-sed -i 's/Agon Quark VPD Version %d\.%02d/Agon Quark VPD Version %d\.%02d Hexload patch/g' agon-vdp-patched/video.ino
+sed -i 's/Agon Quark VDP Version %d\.%02d/Agon Quark VDP Version %d\.%02d Hexload patch/g' agon-vdp-patched/video.ino
 echo "Relocating video code"
 cd agon-vdp-patched
 mv $(ls --ignore video) video

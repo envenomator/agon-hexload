@@ -33,6 +33,8 @@ extern VOID	uart1_handler(void);
 // external variables
 extern volatile UINT24 startaddress;
 extern volatile UINT24 endaddress;
+extern volatile UINT24 datarecords;
+extern volatile UINT8  defaultAddressUsed;
 
 // single VDP function needed
 UINT8 vdp_cursorGetXpos(void);
@@ -92,7 +94,13 @@ void handle_hexload_uart1(UINT24 baudrate)
 	// Only feedback during transfer - we have no time to output to VDP or even UART1 between received bytes
 	printf("Receiving Intel HEX records - UART1:%d 8N1\r\n",baudrate);
 	c = hxload_uart1();
-	if(c == 0) printf("OK\r\n");
+	if(c == 0) {
+		printf("%d datarecords\r\n",datarecords);
+		printf("Start address 0x%06X",startaddress);
+		if(defaultAddressUsed) printf(" (default)\r\n");
+		else printf("\r\n");
+		printf("OK\r\n");
+	}
 	else printf("%d error(s)\r\n",c);
 
 	// close UART1, so no more interrupts will trigger before removal of handler

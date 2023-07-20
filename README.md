@@ -24,6 +24,10 @@ The utility requires at least MOS version 1.02
 ### Baudrate
 The uart1 option has a selectable baudrate. If no baudrate is given, the default of 384000 is selected. The vdp option uses 115200 by default. The actual baudrate used is echoed to the user at startup.
 
+**Please be aware** that **achievable** baudrates in **your** setup may be much lower than this. Some users report baud rates well below 115200. The **achievable** baudrate without errors during transmission in your setup, will depend on factors like quality of your FTDI adapter, which IC is on it, which driver is loaded into the operating system for it to function, your operating system itself, but also which USB interface you are plugging it into.
+
+Upon first use, it appears prudent to set an initially LOW baudrate value, potentially as low as 57600, or even 9600, to verify transmission. And only after this initial verification ramp up the speed an next attempts to see where you end up with your specific setup.
+
 ### Difference in feedback during transmission
 During reception of Intel Hex files on the UART1, no feedback is given to the user before transmission is terminated by a 01 record. There is not enough CPU available to handle output while also processing the input at high speed.
 Using the VDP does allow for feedback to the user during transmission. The VDP informs the user of every address record sent.

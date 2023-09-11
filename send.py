@@ -1,7 +1,7 @@
 ## Title:       send.py
 ## Author:      Jeroen Venema
 ## Created:     25/10/2022
-## Last update: 10/09/2023
+## Last update: 11/09/2023
 
 ## syntax
 ## send.py FILENAME <PORT> <BAUDRATE>
@@ -11,10 +11,12 @@
 ## 25/10/2022 initial version
 ## 10/09/2023 Script converts binary file to Intel Hex during transmission. 
 ##            Using defaults as constants.
+## 11/09/2023 Wait time variable introduced for handling PC serial drivers with low buffer memory
 
 DEFAULT_START_ADDRESS = 0x40000
 DEFAULT_SERIAL_PORT   = 'COM11'
 DEFAULT_BAUDRATE      = 115200
+DEFAULT_LINE_WAITTIME = 0       ## A value of +/- 0.003 Helps PC serial drivers with low buffer memory
 
 def errorexit(message):
   print(message)
@@ -86,9 +88,11 @@ try:
     if nativehexfile:
       for line in content:
         ser.write(str(line).encode('ascii'))
+        time.sleep(DEFAULT_LINE_WAITTIME)
     else:
       for line in file:
         ser.write(str(line).encode('ascii'))
+        time.sleep(DEFAULT_LINE_WAITTIME)
 
 except serial.SerialException:
   errorexit('Error: serial port unavailable')

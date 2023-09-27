@@ -55,13 +55,15 @@ void write_file(char *filename) {
 
 void handle_hexload_vdp(void)
 {	
+	/*
 	// First we need to test the VDP version in use
 	printf("\r");	// set the cursor to X:0, Y unknown, doesn't matter
 	// No local output, the VDP will handle this
+	*/
 	// set vdu 23/28 to start HEXLOAD code at VDU
 	putch(23);
 	putch(28);
-	
+	/*
 	
 	// A regular VDP will have the cursor at X:0, the patched version will send X:1
 	if(vdp_cursorGetXpos() != 1)
@@ -69,6 +71,7 @@ void handle_hexload_vdp(void)
 		printf("Incompatible VDP version\r\n");
 		return;
 	}
+	*/
 	// We can't transmit any text during bytestream reception, so the VDU handles this remotely
 	hxload_vdp();
 }

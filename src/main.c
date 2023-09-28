@@ -1,8 +1,8 @@
 /*
- * Title:			AGON Hexload code
+ * Title:			AGON MOS Hexload command
  * Author:			Jeroen Venema
  * Created:			22/10/2022
- * Last Updated:	04/04/2023
+ * Last Updated:	28/09/2023
  * 
  * Modinfo:
  * 22/10/2022:		Initial version MOS patch
@@ -14,6 +14,7 @@
  *                  Option to save as file to SD card
  * 30/03/2023:		Preparation for MOS 1.03
  * 04/04/2023:		Making use of mos_setintvector, kept own UART1 handler for speed
+ * 28/09/2023:		VDP 1.04 compliant transfer using ESP32 USB/Serial port
  */
 
 #define DEFAULT_BAUDRATE 		 384000
@@ -36,12 +37,7 @@ extern volatile UINT24 endaddress;
 extern volatile UINT24 datarecords;
 extern volatile UINT8  defaultAddressUsed;
 
-// single VDP function needed
-UINT8 vdp_cursorGetXpos(void);
-
 int errno; // needed by stdlib
-
-typedef void * rom_set_vector(unsigned int vector, void(*handler)(void));
 
 void write_file(char *filename) {
 	if(filename) {
@@ -53,32 +49,15 @@ void write_file(char *filename) {
 	}
 }
 
-void handle_hexload_vdp(void)
-{	
-	/*
-	// First we need to test the VDP version in use
-	printf("\r");	// set the cursor to X:0, Y unknown, doesn't matter
-	// No local output, the VDP will handle this
-	*/
+void handle_hexload_vdp(void) {	
 	// set vdu 23/28 to start HEXLOAD code at VDU
 	putch(23);
 	putch(28);
-	/*
-	
-	// A regular VDP will have the cursor at X:0, the patched version will send X:1
-	if(vdp_cursorGetXpos() != 1)
-	{
-		printf("Incompatible VDP version\r\n");
-		return;
-	}
-	*/
 	// We can't transmit any text during bytestream reception, so the VDU handles this remotely
 	hxload_vdp();
 }
 
-
-void handle_hexload_uart1(UINT24 baudrate)
-{
+void handle_hexload_uart1(UINT24 baudrate) {
 	CHAR c;
 	void *oldvector;
 	UART 	pUART;
@@ -117,8 +96,7 @@ int main(int argc, char * argv[]) {
 	char *end;
 	char *filename = NULL;
 
-	if((argc >= 2) && (strcmp("uart1",argv[1]) == 0))
-	{
+	if((argc >= 2) && (strcmp("uart1",argv[1]) == 0)) {
 		if(argc >= 3) {
 			baudrate = strtol(argv[2], &end, 10);
 			if(*end) { 
@@ -152,18 +130,4 @@ int main(int argc, char * argv[]) {
 	}			
 	printf("Usage: hexload <uart1 [baudrate]| vdp> [filename]\r\n");
 	return 0;
-}
-
-UINT8 vdp_cursorGetXpos(void)
-{
-	unsigned int delay;
-	
-	putch(23);	// VDP command
-	putch(0);	// VDP command
-	putch(0x82);	// Request cursor position
-	
-	delay = 255;
-	while(delay--);
-	return(getsysvar_cursorX());
-
 }

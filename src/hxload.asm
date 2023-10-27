@@ -38,6 +38,9 @@ _hxload_uart1:
 			LD		A, 1
 			LD		(_defaultAddressUsed), A
 
+			LD		A, 1
+			LD		(_linearmode), A		; default to linear addressing
+	
 			LD		A, LOAD_HLU_DEFAULT
 			LD		(hexload_address + 2),A	; store HLU
 			XOR		A,A
@@ -47,6 +50,7 @@ _hxload_uart1:
 			LD		HL, hexload_address
 			LD		HL,(HL)					; load assembled address from memory into HL as a pointer
 			LD		(_startaddress),HL		; store first address
+			LD		(_defaultAddress),HL		; store default address
 
 hxline:
 			CALL	_uart1_getch
@@ -55,20 +59,82 @@ hxline:
 			LD		E,0						; reset the checksum byte
 			CALL	getbyte					; record length count - D
 			LD		D,A
+			
+			LD		A, (_linearmode)
+			OR		A
+			JR		NZ, hxline_linear
+
+hxline_extended:							; extend/add address to HL
+			CALL	getbyte					; relative load address - B
+			LD		BC, 0					; BC will contain relative address
+			LD		B,A
+			PUSH	BC
+			CALL	getbyte					; relative load address - C
+			POP		BC
+			LD		C,A
+			LD		HL, (hexload_address)	; each extended record has the same base address
+			ADD		HL, BC					; For data records, HL points to correct address
+			JR		hexline_record
+
+hxline_linear:								; overwrite lower 16-bit in HL
 			CALL	getbyte					; relative load address - H
 			LD		H,A
 			CALL	getbyte					; relative load address - L
 			LD		L,A
+
+hexline_record:
 			CALL	getbyte					; record field type
 			CP		0
 			JR		Z, hexdata
 			CP		1
 			JR		Z, hexendfile
+			CP		2
+			JR		Z, hex_ext_segment_address
 			CP		4
-			JR		Z, hex_address
+			JR		Z, hex_ext_linear_address
 			JR		hxline					; ignore all other record types, find next line
 
-hex_address:
+hex_ext_segment_address:
+			LD		A, 0
+			LD		(_linearmode), A
+
+			LD		HL, 0					; zero out HLU
+			CALL	getbyte
+			LD		H, A
+			CALL	getbyte
+			LD		L, A
+
+			ADD		HL,HL					; shift HL 4 bit to the left
+			ADD		HL,HL
+			ADD		HL,HL
+			ADD		HL,HL					; HL now points to 4-bit shifted ext_segment_address
+
+			LD		A, (_defaultAddressUsed); do we need to add the defaultaddress?
+			OR		A
+			JR		Z, $F					; nope
+			LD		BC, (_defaultAddress)
+			ADD		HL, BC					; every segment will be relative when default addresses are used
+	$$:
+			PUSH	BC
+			PUSH	HL
+			LD		HL, hexload_address
+			POP		BC						; BC now contains address
+			LD		(HL), BC				; store address pointer
+			LD		HL, BC					; set HL to pointer address again
+			POP		BC
+
+			CALL	update_default_address
+
+			CALL	getbyte					; load checksum
+			LD		A,E
+			OR		A
+			JR		NZ, hexckerr			; checksum error on this line
+			JR		hxline
+
+hex_ext_linear_address:
+			LD		A, 1
+			LD		(_linearmode), A
+
 			CALL	getbyte					; load and ignore address[31:24] / upper byte
 			CALL	getbyte					; load address[23:16]
 			LD		(hexload_address + 2),A	; store HLU
@@ -78,6 +144,16 @@ hex_address:
 			LD		HL, hexload_address
 			LD		HL,(HL)					; load assembled address from memory into HL as a pointer
 
+			CALL	update_default_address
+
+			CALL	getbyte					; load checksum
+			LD		A,E
+			OR		A
+			JR		NZ, hexckerr			; checksum error on this line
+			JR		hxline
+
+; input: HL points to current address 'header'
+update_default_address:
 			PUSH	BC
 			PUSH	HL
 			PUSH	DE
@@ -97,11 +173,7 @@ $$:
 			POP		HL
 			POP		BC
 
-			CALL	getbyte					; load checksum
-			LD		A,E
-			OR		A
-			JR		NZ, hexckerr			; checksum error on this line
-			JR		hxline
+			RET
 
 hexdata:
 			CALL	getbyte
@@ -133,6 +205,7 @@ hexendfile:
 			POP		DE
 			RET
 
+; returns byte in A, updates checksum in E
 getbyte:
 			CALL	getnibble
 			RLCA
@@ -276,7 +349,10 @@ $$:			CP	(HL)
 hexload_address		DS		3	; 24bit address
 hexload_error		DS		1	; error counter
 firstwrite			DS		1	; boolean
+_defaultAddress		DS		3	; default address of Agon platform
 _startaddress		DS		3	; first address written to
 _endaddress			DS		3	; last address written to
 _datarecords		DS		3	; number of data records read
 _defaultAddressUsed DS		1	; boolean
+;_datawritten		DS		1	; boolean
+_linearmode			DS		1	; boolean

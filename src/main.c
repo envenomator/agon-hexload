@@ -18,6 +18,7 @@
  */
 
 #define DEFAULT_BAUDRATE 		 384000
+#define RAMSTART				0x40000
 
 #include <stdio.h>
 #include <ctype.h>
@@ -78,10 +79,13 @@ void handle_hexload_uart1(UINT24 baudrate) {
 	c = hxload_uart1();
 	if(c == 0) {
 		printf("%d datarecords\r\n",datarecords);
-		printf("Start address 0x%06X",startaddress);
-		if(defaultAddressUsed) printf(" (default)\r\n");
-		else printf("\r\n");
-		printf("OK\r\n");
+		if(startaddress >= RAMSTART) {
+			printf("Start address 0x%06X",startaddress);
+			if(defaultAddressUsed) printf(" (default)\r\n");
+			else printf("\r\n");
+			printf("OK\r\n");
+		}
+		else printf("ERROR: Start address 0x%06X in ROM area, transfer unsuccessful\r\n", startaddress);
 	}
 	else printf("%d error(s)\r\n",c);
 

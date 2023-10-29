@@ -80,7 +80,7 @@ else:
   file.seek(0)
 
 try:
-  with serial.Serial(serialport, baudrate,rtscts=False,dsrdtr=False,timeout=None) as ser:
+  with serial.Serial(serialport, baudrate,rtscts=False,dsrdtr=None,timeout=None) as ser:
     print('Opening serial port...')
     time.sleep(1)
     print('Sending data...')
@@ -93,6 +93,8 @@ try:
       for line in file:
         ser.write(str(line).encode('ascii'))
         time.sleep(DEFAULT_LINE_WAITTIME)
+
+    time.sleep(1) ## some boards restart immediately after serial drop, corrupting buffer
 
 except serial.SerialException:
   errorexit('Error: serial port unavailable')

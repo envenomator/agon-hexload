@@ -29,6 +29,7 @@ import sys
 import time
 import os.path
 import tempfile
+import serial.tools.list_ports
 try:
   import serial
 except ModuleNotFoundError:
@@ -47,8 +48,11 @@ if not os.path.isfile(sys.argv[1]):
   sys.exit(f'Error: file \'{sys.argv[1]}\' not found')
 
 if len(sys.argv) == 2:
-  serialport = DEFAULT_SERIAL_PORT
-
+  #serialport = DEFAULT_SERIAL_PORT
+  serialports = serial.tools.list_ports.comports()
+  if len(serialports) > 1:
+    sys.exit("Multiple COM ports - cannot automatically select");
+  serialport = str(serialports[0]).split(" ")[0]
 if len(sys.argv) >= 3:
   serialport = sys.argv[2]
 
@@ -94,8 +98,7 @@ try:
         ser.write(str(line).encode('ascii'))
         time.sleep(DEFAULT_LINE_WAITTIME)
 
-    time.sleep(1) ## some boards restart immediately after serial drop, corrupting buffer
-
+    time.sleep(1)
 except serial.SerialException:
   errorexit('Error: serial port unavailable')
 

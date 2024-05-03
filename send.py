@@ -19,7 +19,9 @@
 DEFAULT_START_ADDRESS = 0x40000
 DEFAULT_SERIAL_PORT = 'COM11'
 DEFAULT_BAUDRATE      = 115200
-DEFAULT_LINE_WAITTIME = 0.003      ## A value of +/- 0.003 Helps PC serial drivers with low buffer memory
+DEFAULT_LINE_WAITTIME = 0.000      ## A value of +/- 0.003 Helps PC serial drivers with low buffer memory
+IHEXBYTELENGTH = 255
+WAITCRC = True
 
 def errorexit(message):
   print(message)
@@ -28,12 +30,44 @@ def errorexit(message):
   exit()
   return
 
+def hexchecksum(hexstring):
+    result = hexstring[1:]    
+    checksum = 0
+    msn = True
+    for digit in result:
+        if msn:
+            bytestring = digit
+            msn = False
+        else:
+            bytestring += digit 
+            checksum += int(bytestring, 16)
+            msn = True
+
+    checksum = checksum & 0xff
+    checksum = (~checksum & 0xff) + 1
+    return checksum
+
+def create_startrecord(crc32):
+    startrecord = ':060000FF0000' + hex(crc32)[2:].zfill(8).upper()
+    startrecord += hex(hexchecksum(startrecord))[2:].zfill(2).upper()
+    return startrecord
+
+def create_stoprecord():
+    stoprecord = ':020000FF0001'
+    stoprecord += hex(hexchecksum(stoprecord))[2:].zfill(2).upper()
+    return stoprecord
+
 import sys
 import time
 import os
 import os.path
 import tempfile
 import serial.tools.list_ports
+import crcmod
+
+crc16 = crcmod.mkCrcFun(0x18005, 0x0, False, 0x0)
+#crc16 = crcmod.crcmod.predefined.Crc('crc-16')
+crc32 = crcmod.crcmod.predefined.Crc('crc-32')
 
 if(os.name == 'posix'): # termios only exists on Linux
   DEFAULT_SERIAL_PORT   = '/dev/ttyUSB0'
@@ -83,6 +117,16 @@ print(f'Using serial port {serialport}')
 print(f'Using Baudrate {baudrate}')
 
 if nativehexfile:
+  # calculate crc32 of actual hex content data
+  ihex = IntelHex()
+  ihex.loadhex(sys.argv[1])
+  for start,end in ihex.segments():
+     while start != end:
+        byte = ihex[start].to_bytes(1,"little")
+        crc32.update(byte)
+        start += 1
+  
+  # open native hex file for sending
   file = open(sys.argv[1], "r")
   content = file.readlines()
 else:
@@ -90,8 +134,14 @@ else:
   ihex = IntelHex()
   file = tempfile.TemporaryFile("w+t")
   ihex.loadbin(sys.argv[1], offset=DEFAULT_START_ADDRESS)
-  ihex.write_hex_file(file)
+  ihex.write_hex_file(file, byte_count = IHEXBYTELENGTH)
   file.seek(0)
+  # Calculate crc from binary file
+  with open(sys.argv[1], "rb") as f:
+    byte = f.read(1)
+    while byte:
+      crc32.update(byte)
+      byte = f.read(1)
 
 resetPort = False
 
@@ -126,20 +176,57 @@ if(os.name == 'posix'):
 try:
     ser.open()
     print('Opening serial port...')
+
+    if not nativehexfile:
+      content = file
+
+    if WAITCRC:
+      startrecord = create_startrecord(crc32.crcValue)
+      ser.write(startrecord.encode())
+      sent = crc16(startrecord.strip().encode('ascii'))
+      ser.write(hex(sent)[2:].zfill(4).upper().encode())
+
+      time.sleep(0.3)
+      if ser.in_waiting:
+        ret = int.from_bytes(ser.read(2), "little")
+        sent = crc16(startrecord.encode('ascii'))         
+        if ret != sent:
+          errorexit("Extended header sending error, aborting")
+      else:
+        WAITCRC = False # Target VDP has no extended code built in
+        print('VDP doesn\'t support extended CRC16/32; sending regular format')
+
     print('Sending data...')
+    for line in content:
+        linesent_ok = False
+        while not linesent_ok:
+            ser.write(str(line).strip().encode('ascii'))
+            linesent_ok = True
 
-    if nativehexfile:
-      for line in content:
-        ser.write(str(line).encode('ascii'))
-        time.sleep(DEFAULT_LINE_WAITTIME)
-    else:
-      for line in file:
-        ser.write(str(line).encode('ascii'))
-        time.sleep(DEFAULT_LINE_WAITTIME)
+            if WAITCRC:
+              sent = crc16(line.strip().encode('ascii'))
+              ser.write(hex(sent)[2:].zfill(4).upper().encode())
+              while ser.in_waiting < 2:
+                  pass
+              ret = int.from_bytes(ser.read(2), "little")
+              if ret != sent:
+                  print("CRC error, retransmitting")
+                  linesent_ok = False
+            time.sleep(DEFAULT_LINE_WAITTIME)
 
+    if WAITCRC:
+        while ser.in_waiting == 0:
+           pass
+        crc32result = int.from_bytes(ser.read(4), "little")
+        if crc32result == crc32.crcValue:
+            print('CRC - OK')
+        else:
+            print('CRC ERROR')
     print('Done')
+
     ser.close()
 except serial.SerialException:
     errorexit('Error: serial port unavailable')
 
 file.close()
+

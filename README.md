@@ -42,6 +42,12 @@ Intel Hex files must be sent in ascii format, over one of the serial interfaces.
 
     send.py filename <port> <baudrate>
 
+The script has the following python requirements, installable with 'pip install':
+- pyserial
+- termios (Linux only)
+- intelhex
+- crcmod
+
 Due to the way the VDP/serial interface is wired up (to bootstrap the ESP32 for programming), the board usually resets when the serial interface opens/closes. This means that a waiting hexload client is suddenly gone when a transfer is started. To avoid this, the script tries to set the DTR/CTS signals explicitly before starting the transfer. Boards with the CH340 FTDI chip may reset just the first time after power-up and not later on. Your mileage may vary; just press the reset button and try again, in the correct order.
 
 ### UART1 pinout

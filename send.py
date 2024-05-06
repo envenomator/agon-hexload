@@ -21,7 +21,7 @@ DEFAULT_SERIAL_PORT = 'COM11'
 DEFAULT_BAUDRATE      = 115200
 DEFAULT_LINE_WAITTIME = 0.000      ## A value of +/- 0.003 Helps PC serial drivers with low buffer memory
 IHEXBYTELENGTH = 255
-WAITCRC = True
+WAITCRC = True  # request extended format, if available from the VDP
 
 def errorexit(message):
   print(message)
@@ -62,12 +62,6 @@ import time
 import os
 import os.path
 import tempfile
-import serial.tools.list_ports
-import crcmod
-
-crc16 = crcmod.mkCrcFun(0x18005, 0x0, False, 0x0)
-#crc16 = crcmod.crcmod.predefined.Crc('crc-16')
-crc32 = crcmod.crcmod.predefined.Crc('crc-32')
 
 if(os.name == 'posix'): # termios only exists on Linux
   DEFAULT_SERIAL_PORT   = '/dev/ttyUSB0'
@@ -84,7 +78,13 @@ try:
   from intelhex import IntelHex
 except ModuleNotFoundError:
   errorexit('Please install the \'intelhex\' module with pip')
+try:
+  import crcmod
+except ModuleNotFoundError:
+  errorexit('Please install the \'crcmod\' module with pip')
 
+crc16 = crcmod.mkCrcFun(0x18005, 0x0, False, 0x0)
+crc32 = crcmod.crcmod.predefined.Crc('crc-32')
 
 if len(sys.argv) == 1 or len(sys.argv) >4:
   sys.exit('Usage: send.py FILENAME <PORT> <BAUDRATE>')

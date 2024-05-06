@@ -72,6 +72,7 @@ if(os.name == 'posix'): # termios only exists on Linux
 
 try:
   import serial
+  import serial.tools.list_ports
 except ModuleNotFoundError:
   errorexit('Please install the \'pyserial\' module with pip')
 try:
